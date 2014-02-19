@@ -1,0 +1,87 @@
+Command :
+{
+	"command":"serverinfo"
+}
+Replay :
+{
+	"info":{
+		"effects":[
+			*:{
+				"name":<string>,
+				"script":<string>,
+				"args":{
+					* "<argName>":value
+				}
+			}
+		]
+		"priorities":[
+			*:{
+				"priority":<int>,
+				"duration_ms"?:timeout - now
+			}
+		]
+		"transform":[
+			*:{
+				"id":<string>,
+				"saturationGain":<float>,
+				"valueGain":<float>,
+				"threshold":[float, float, float],
+				"gamma":[float, float, float],
+				"blacklevel":[float, float, float],
+				"whitelevel":[float, float, float]
+			}
+		]
+	}
+	"success":"true",
+}
+
+======================================================
+
+Command :
+{
+	"color":[int, int, int],
+	"command":"color",
+	"priority":int
+}
+Reply :
+{
+	"success":true
+}
+
+======================================================
+
+Command :
+{
+	"effect":{
+		"name":"<EffectName>"
+	}
+	"command":"effect",
+	"priority":int
+}
+Reply :
+{
+	"success":true
+}
+
+======================================================
+
+Command :
+{
+	"command":"clear",
+	"priority":int
+}
+Reply :
+{
+	"success":true
+}
+
+======================================================
+
+Command :
+{
+	"command":"clearall",
+}
+Reply :
+{
+	"success":true
+}
