@@ -2,7 +2,8 @@ Command :
 {
 	"command":"serverinfo"
 }
-Replay :
+{"info":{"effects":[],"priorities":[],"transform":[{"blacklevel":[0.0,0.0,0.0],"gamma":[1.0,1.0,1.0],"id":"default","saturationGain":1.0,"threshold":[0.0,0.0,0.0],"valueGain":1.0,"whitelevel":[1.0,1.0,1.0]}]},"success":true}
+Reply :
 {
 	"info":{
 		"effects":[

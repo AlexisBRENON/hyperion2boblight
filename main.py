@@ -1,24 +1,25 @@
 #! /usr/bin/env python
 
 import socket
-import json
+import ClientThread as ct
 
 HOST = '0.0.0.0'
-PORT = 12346
+PORT = 19444
+priorities = []
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.bind((HOST, PORT))
-s.listen(1)
-conn, addr = s.accept()
+def main():
+    serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) 
+    serverSocket.bind((HOST, PORT))
+    serverSocket.listen(5)
 
-try:
-    print 'Connected by', addr
-    data = conn.recv(1024)
-    rqst = json.loads(data)
-    print(json.dumps(rqst))
-    conn.send('["success": "true"]')
-    data = conn.recv(1024)
-    rqst = json.loads(data)
-    print(json.dumps(rqst))
-finally:
-    conn.close()
+    try:
+        while True:
+            connection, clientAddress = serverSocket.accept()
+            clientThread = ct.ClientThread(connection, clientAddress)
+            clientThread.start()
+    except KeyboardInterrupt, e:
+        serverSocket.close()
+
+if __name__ == '__main__':
+    main()
