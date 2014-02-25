@@ -1,0 +1,13 @@
+v1.0
+Renamed effect Mood to Rainbow
+First working prototype
+
+v0.5
+Added support for common hyperion commands:
+	- color
+	- clear
+	- clearall
+Added support for one effect : Mood
+
+v0.1
+Initial revision
