@@ -1,6 +1,7 @@
 import threading
 import colorsys
 import telnetlib
+import sys
 
 class MoodThread(threading.Thread):
     """docstring for MoodThread"""
@@ -17,13 +18,14 @@ class MoodThread(threading.Thread):
 
         # Start the write data loop
         hue = 0.0
-        while not self.stopEvent.is_set():
-            rgb = colorsys.hsv_to_rgb(hue, saturation, brightness)
+        self.stopEvent.clear()
+        while not self.stopEvent.wait(sleepTime):
+            rgb = colorsys.hsv_to_rgb(hue, 1.0, 1.0)
             self.connection.write('set light %s rgb %f %f %f\n' % 
                 (self.lightName, rgb[0], rgb[1], rgb[2]))
             hue = (hue + hueIncrement) % 1.0
-            stopEvent.wait(sleepTime)
-        self.stopEvent.clear()
+        self.connection.write('set light %s rgb 0 0 0\n' % 
+            (self.lightName))
 
 class ColorThread(threading.Thread):
     """docstring for MoodThread"""
@@ -35,10 +37,12 @@ class ColorThread(threading.Thread):
         self.rgb = rgb
 
     def run(self):
-        self.connection.write('set light %s rgb %f %f %f\n' % 
-            (self.lightName, self.rgb[0], self.rgb[1], self.rgb[2]))
-        self.stopEvent.wait()
         self.stopEvent.clear()
+        self.connection.write('set light %s rgb %f %f %f\n' % 
+            (self.lightName, self.rgb[0]/255.0, self.rgb[1]/255.0, self.rgb[2]/255.0))
+        self.stopEvent.wait()
+        self.connection.write('set light %s rgb 0 0 0\n' % 
+            (self.lightName))
 
 class BoblightClient(threading.Thread):
     """Thread which is connected to the boblight server"""
@@ -53,20 +57,17 @@ class BoblightClient(threading.Thread):
         while True:
             self.prioritizeList.event.wait()
             self.prioritizeList.event.clear()
-            print('New command added to list !')
+            stopEvent.set()
             with self.prioritizeList.lock:
                 priorities = self.prioritizeList.priorities.keys()
-                priorities.sort()
-                smallestPriorityCommand = self.prioritizeList.priorities[priorities[0]]
-            print('Smallest priority : %d' % priorities[0])
-            cmd = 'set priority %d' % priorities[0]
-            print cmd
-            #self.connection.write()
-            print smallestPriorityCommand
-            if smallestPriorityCommand == 'Mood':
-                print 'Mood asked'
-                thread = MoodThread(self.connection, stopEvent)
-                thread.start()
-            elif type(smallestPriorityCommand) is list:
-                print 'Color asked'
-                ColorThread(self.connection, smallestPriorityCommand, stopEvent).start()
+                if len(priorities) > 0:
+                    priorities.sort()
+                    smallestPriorityCommand = self.prioritizeList.priorities[priorities[0]]
+                else:
+                    smallestPriorityCommand = None
+            if smallestPriorityCommand:
+                self.connection.write('set priority %d\n' % (priorities[0]))
+                if smallestPriorityCommand == 'Mood':
+                    MoodThread(self.connection, stopEvent).start()
+                elif type(smallestPriorityCommand) is list:
+                    ColorThread(self.connection, smallestPriorityCommand, stopEvent).start()

@@ -24,6 +24,12 @@ class HyperionDecoder(threading.Thread):
             elif command == 'effect':
                 rply = self.handle_effect(rqst)
                 self.connection.send(json.dumps(rply)+'\n')
+            elif command == 'clear':
+                rply = self.handle_clear(rqst)
+                self.connection.send(json.dumps(rply)+'\n')
+            elif command == 'clearall':
+                rply = self.handle_clearall(rqst)
+                self.connection.send(json.dumps(rply)+'\n')
             else:
                 print "Command not recognized : %s" % {command}
         else:
@@ -31,7 +37,6 @@ class HyperionDecoder(threading.Thread):
         self.connection.close()
 
     def handle_server_info(self, rqst):
-        print('Received : Server info')
         rply = {}
         rply['success'] = True
         info = {}
@@ -55,20 +60,26 @@ class HyperionDecoder(threading.Thread):
         return rply
 
     def handle_color(self, rqst):
-        print('Received : color') 
-        print int(rqst['priority'])
-        print rqst['color']
         with self.prioritizeList.lock:
             self.prioritizeList.priorities[int(rqst['priority'])] = rqst['color']
         self.prioritizeList.event.set()
         return {'success':True}
 
     def handle_effect(self, rqst):
-        print('Received : effect')
-        print int(rqst['priority'])
-        print rqst['effect']['name']
         with self.prioritizeList.lock:
             self.prioritizeList.priorities[int(rqst['priority'])] = rqst['effect']['name']
+        self.prioritizeList.event.set()
+        return {'success':True}
+
+    def handle_clear(self, rqst):
+        with self.prioritizeList.lock:
+            del self.prioritizeList.priorities[int(rqst['priority'])]
+        self.prioritizeList.event.set()
+        return {'success':True}
+
+    def handle_clearall(self, rqst):
+        with self.prioritizeList.lock:
+            self.prioritizeList.priorities.clear()
         self.prioritizeList.event.set()
         return {'success':True}
 
