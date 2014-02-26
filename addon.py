@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 
 import socket
+import time
 import resources.lib.PriorityList as PriorityList
 import resources.lib.HyperionDecoder as HyperionDecoder
 import resources.lib.BoblightClient as BoblightClient
@@ -16,7 +17,6 @@ settings = {
 def main():
     # Create the priority queue
     prioritiesList = PriorityList.PriorityList()
-    utils.log_info('Priority list initialized.')
     
     # Create the telnet connection to boblightd in an other thread
     clientThread = BoblightClient.BoblightClient(
@@ -24,9 +24,7 @@ def main():
         settings['boblightdAddress'],
         settings['boblightdPort'])
     clientThread.daemon = True
-    utils.log_info('Boblight thread initialized.')
     clientThread.start()
-    utils.log_info('Boblight thread launched.')
 
     # Start listening on server socket
     serverThread = HyperionDecoder.HyperionDecoder(
@@ -34,12 +32,13 @@ def main():
         settings['listeningAddress'],
         settings['listeningPort'])
     serverThread.daemon = True
-    utils.log_info('Hyperion thread initialized.')
     serverThread.start()
-    utils.log_info('Hyperion thread launched.')
 
-    serverThread.join()
-    clientThread.join()
+    try:
+        while serverThread.isAlive() and clientThread.isAlive():
+            time.sleep(1)
+    except:
+        utils.log_info('Main : exiting')
 
 if __name__ == '__main__':
     main()

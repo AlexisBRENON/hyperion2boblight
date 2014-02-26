@@ -38,3 +38,9 @@ class PriorityList(object):
             else:
                 result = (None, None)
         return result
+
+    def waitNewItem(self):
+        self.event.wait()
+        result = self.getFirst()
+        self.event.clear()
+        return result
