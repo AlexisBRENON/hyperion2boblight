@@ -9,30 +9,35 @@ class HandlerThread(threading.Thread):
         super(HandlerThread, self).__init__()
         self.prioritiesList = prioritiesList
         self.connection = connection
+        self.connection.settimeout(2)
 
     def run(self):
         # Read the command (hyperion commands are shorts < 1024B)
-        data = self.connection.recv(1024)
-        if data:
-            # Parse and handle command
-            rqst = json.loads(data)
-            command = rqst['command']
-            if command == 'serverinfo':
-                rply = self.handle_server_info(rqst)
-            elif command == 'color':
-                rply = self.handle_color(rqst)
-            elif command == 'effect':
-                rply = self.handle_effect(rqst)
-            elif command == 'clear':
-                rply = self.handle_clear(rqst)
-            elif command == 'clearall':
-                rply = self.handle_clearall(rqst)
+        while True:
+            try:
+                data = self.connection.recv(1024)
+            except socket.timeout:
+                data = None
+            if data:
+                # Parse and handle command
+                rqst = json.loads(data)
+                command = rqst['command']
+                if command == 'serverinfo':
+                    rply = self.handle_server_info(rqst)
+                elif command == 'color':
+                    rply = self.handle_color(rqst)
+                elif command == 'effect':
+                    rply = self.handle_effect(rqst)
+                elif command == 'clear':
+                    rply = self.handle_clear(rqst)
+                elif command == 'clearall':
+                    rply = self.handle_clearall(rqst)
+                else:
+                    utils.log_error('Command not recognized : %s' % (command))
+                    rply = {'success':False}
+                self.connection.send(json.dumps(rply)+'\n')
             else:
-                utils.log_error('Command not recognized : %s' % (command))
-                rply = {'success':False}
-            self.connection.send(json.dumps(rply)+'\n')
-        else:
-            utils.log_error('No command received...')
+                break
         self.connection.close()
 
     def handle_server_info(self, rqst):
@@ -46,7 +51,7 @@ class HandlerThread(threading.Thread):
                     'script':'Rainbow.py',
                     'args':{}
                 }],
-                'priorities':self.prioritiesList.getPriorities(),
+                'priorities':[],
                 'transform':{
                     'id':'default',
                     'valueGain':1.0,
@@ -58,6 +63,9 @@ class HandlerThread(threading.Thread):
                 }
             }
         }
+        priorities = self.prioritiesList.getPriorities()
+        for p in priorities:
+        	rply['info']['priorities'].append({'priority':p})
         return rply
 
     def handle_color(self, rqst):

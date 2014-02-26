@@ -6,13 +6,36 @@ import resources.lib.PriorityList as PriorityList
 import resources.lib.HyperionDecoder as HyperionDecoder
 import resources.lib.BoblightClient as BoblightClient
 import resources.lib.utils as utils
+import resources.lib.xbmc.xbmcaddon as xbmcaddon
+import resources.lib.xbmc.xbmc as xbmc
 
+__addon__        = xbmcaddon.Addon()
+__addonname__    = __addon__.getAddonInfo('id')
+__addonversion__ = __addon__.getAddonInfo('version')
+__addonpath__    = __addon__.getAddonInfo('path').decode('utf-8')
+__addonicon__    = xbmc.translatePath('%s/icon.png' % __addonpath__ )
+__language__     = __addon__.getLocalizedString
+
+#settings = getSettings()
 settings = {
     'listeningAddress':'0.0.0.0',
     'listeningPort':19444,
-    'boblightdAddress':'openelec.home',
-    'boblightdPort':19333
+    'boblightAddress':'openelec.home',
+    'boblightPort':19333
 }
+
+def getSettings():
+    result['listeningPort'] = __addon__.getSettings('hyperionPort')
+    result['boblightPort'] = __addon__.getSettings('boblightPort')
+    if __addon__.getSettings('hyperionIsHostname') == 'true':
+        result['listeningAddress'] = __addon__.getSettings('hyperionHostname')
+    else:
+        result['listeningAddress'] = __addon__.getSettings('hyperionIP')
+    if __addon__.getSettings('boblightIsHostname') == 'true':
+        result['boblightAddress'] = __addon__.getSettings('boblightHostname')
+    else:
+        result['boblightAddress'] = __addon__.getSettings('boblightIP')
+    return result
 
 def main():
     # Create the priority queue
@@ -21,8 +44,8 @@ def main():
     # Create the telnet connection to boblightd in an other thread
     clientThread = BoblightClient.BoblightClient(
         prioritiesList,
-        settings['boblightdAddress'],
-        settings['boblightdPort'])
+        settings['boblightAddress'],
+        settings['boblightPort'])
     clientThread.daemon = True
     clientThread.start()
 

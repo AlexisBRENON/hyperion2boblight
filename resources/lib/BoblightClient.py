@@ -1,34 +1,9 @@
 import threading
-import colorsys
 import telnetlib
 import utils
 import sys
 import socket
-
-class RainbowThread(threading.Thread):
-    """docstring for RainbowThread"""
-    def __init__(self, connection, lights, stopEvent):
-        super(RainbowThread, self).__init__()
-        self.stopEvent = stopEvent
-        self.connection = connection
-        self.lights = lights
-
-    def run(self):
-        sleepTime = 0.1
-        hueIncrement = sleepTime / 60
-
-        # Start the write data loop
-        hue = 0.0
-        self.stopEvent.clear()
-        while not self.stopEvent.wait(sleepTime):
-            rgb = colorsys.hsv_to_rgb(hue, 1.0, 1.0)
-            for light in self.lights:
-                self.connection.write('set light %s rgb %f %f %f\n' % 
-                    (light,
-                    rgb[0],
-                    rgb[1],
-                    rgb[2]))
-            hue = (hue + hueIncrement) % 1.0
+import effects.rainbow
 
 class BoblightClient(threading.Thread):
     """Thread which is connected to the boblight server"""
@@ -36,8 +11,7 @@ class BoblightClient(threading.Thread):
         super(BoblightClient, self).__init__()
         self.prioritiesList = prioritiesList
         try:
-            #self.connection = telnetlib.Telnet(serverAddress, serverPort)
-            raise socket.error
+            self.connection = telnetlib.Telnet(serverAddress, serverPort)
         except socket.error:
             utils.log_error('%s : Unable to create the Telnet connection to boblight server \'%s:%d\'' %
                 (self.__class__.__name__, serverAddress, serverPort))
@@ -57,7 +31,7 @@ class BoblightClient(threading.Thread):
                     (self.__class__.__name__, priority, command))
                 self.connection.write('set priority %d\n' % (priority))
                 if command == 'Rainbow':
-                    RainbowThread(self.connection, self.lights, stopEvent).start()
+                    effects.rainbow.RainbowThread(self.connection, self.lights, stopEvent).start()
                 elif type(command) is list:
                     for light in self.lights:
                         self.connection.write('set light %s rgb %f %f %f\n' % 
