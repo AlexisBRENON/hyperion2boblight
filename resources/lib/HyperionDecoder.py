@@ -111,8 +111,11 @@ class HyperionDecoder(threading.Thread):
         utils.log_info('%s : Server socket listening.' %
             (self.__class__.__name__))
         while True:
-            connection, clientAddress = self.serverSocket.accept()
-            HandlerThread(self.prioritiesList, connection).start()
+            try:
+                connection, clientAddress = self.serverSocket.accept()
+                HandlerThread(self.prioritiesList, connection).start()
+            except Exception, e:
+                utils.log_error(e.strerror)
         utils.log_error('%s : Server socket closed unexpectedly.' % 
             (self.__class__.__name__))
             

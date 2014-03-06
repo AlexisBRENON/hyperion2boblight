@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="script.hyperion.boblight" name="Hyperion To Boblight" version="1.0.1" provider-name="Alexis BRENON">
+  <requires>
+    <import addon="xbmc.python" version="2.1.0"/>
+    <import addon="service.multimedia.boblightd" version="3.1.3"/>
+  </requires>
+  	<extension point="xbmc.python.script" library="addon.py">
+			<provides>executable</provides>
+		</extension>
+  <extension point="xbmc.addon.metadata">
+    <summary lang="en">Hyperion remote wrapper for boblightd server</summary>
+    <summary lang="fr">Intermédiaire entre l'app Hyperion et le serveur Boblight</summary>
+    <description lang="en">This plugin allow you to send datas to the boblightd server using the Hyperion Android App</description>
+    <description lang="fr">Cet addon permet d'envoyer des données à un serveur Boblight en utilisant l'application Android Hyperion</description>
+    <disclaimer lang="en"></disclaimer>
+    <language></language>
+    <platform>all</platform>
+    <license>GNU GPLv3</license>
+    <forum></forum>
+    <website></website>
+    <email>brenon.alexis@gmail.com</email>
+    <source>https://github.com/AlexisBRENON/HyperionRemote-to-Boblightd</source>
+  </extension>
+</addon>
