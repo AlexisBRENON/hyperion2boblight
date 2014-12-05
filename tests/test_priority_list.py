@@ -1,11 +1,11 @@
 import pytest
-import hyperemote2boblight.resources.lib.PriorityList as PriorityList
+import hyperemote2boblight.lib.priority_list as priority_list
 
 class TestPriorityList:
 
   @pytest.fixture
   def empty_priority_list(self):
-    return PriorityList.PriorityList();
+    return priority_list.PriorityList();
 
   
   def test_empty_list_get(self, empty_priority_list):
