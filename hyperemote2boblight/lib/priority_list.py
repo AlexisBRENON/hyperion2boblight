@@ -8,16 +8,13 @@ class PriorityList(object):
     self.datas = {}
     self.event = threading.Event()
 
-  def getPriorities(self):
+  def get_priorities(self):
     with self.lock:
-      result = self.datas.keys()
+      result = list(self.datas.keys())
       result.sort()
     return result
 
-  def get_priorities(self):
-    return self.getPriorities()
-
-  def set(self, priority, data):
+  def put(self, priority, data):
     with self.lock:
       self.datas[priority] = data
       self.event.set()
@@ -33,23 +30,17 @@ class PriorityList(object):
       self.datas.clear()
       self.event.set()
 
-  def getFirst(self):
+  def get_first(self):
     with self.lock:
-      priorities = self.getPriorities()
+      priorities = self.get_priorities()
       if len(priorities) > 0:
         result = (priorities[0], self.datas[priorities[0]])
       else:
         result = (None, None)
     return result
 
-  def get_first(self):
-    return self.getFirst()
-
-  def waitNewItem(self):
+  def wait_new_item(self):
     self.event.wait()
-    result = self.getFirst()
+    result = self.get_first()
     self.event.clear()
     return result
-
-  def wait_new_item(self):
-    return self.waitNewItem()
