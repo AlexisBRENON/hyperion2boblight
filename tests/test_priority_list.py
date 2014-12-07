@@ -1,4 +1,6 @@
 import pytest
+import time
+import threading
 import hyperemote2boblight.lib.priority_list as priority_list
 
 class TestPriorityList:
@@ -14,7 +16,7 @@ class TestPriorityList:
     empty_priority_list.put(128, 128)
     empty_priority_list.put(255, 255)
     return empty_priority_list
-  
+
   def test_empty_priority_list_get_first(self, empty_priority_list):
     """ Fetching an item in an empty list must return the tuple (None, None) """
     assert empty_priority_list.get_first() == (None, None)
@@ -43,5 +45,21 @@ class TestPriorityList:
     """ A call to clear must remove all the items in the priority list """
     non_empty_priority_list.clear()
     assert non_empty_priority_list.get_first() == (None, None)
+
+  def test_empty_priority_list_wait_item_add(self, empty_priority_list):
+    """ In an empty priority list, a call to wait_new_item() should return as soon as new item is added """
+    expected_tuple = (128, 128)
+    def add_item_worker():
+      time.sleep(1.0)
+      empty_priority_list.put(expected_tuple[0], expected_tuple[1])
+
+    worker_thread = threading.Thread(target=add_item_worker)
+    start = time.clock()
+    worker_thread.start()
+    returned_tuple = empty_priority_list.wait_new_item()
+    end = time.clock()
+    assert returned_tuple == expected_tuple
+    assert end - start < 0.001
+    
 
   
