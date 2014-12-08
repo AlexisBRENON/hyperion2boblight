@@ -1,6 +1,5 @@
 import threading
 import json
-import utils
 import socket
 
 
@@ -33,7 +32,7 @@ class HandlerThread(threading.Thread):
         elif command == 'clearall':
           rply = self.handle_clearall(rqst)
         else:
-          utils.log_error('Command not recognized : %s' % (command))
+          print('Command not recognized : %s' % (command))
           rply = {'success':False}
         self.connection.send(json.dumps(rply)+'\n')
       else:
@@ -41,7 +40,7 @@ class HandlerThread(threading.Thread):
     self.connection.close()
 
   def handle_server_info(self, rqst):
-    utils.log_debug('%s : serverinfo' %
+    print('%s : serverinfo' %
       (self.__class__.__name__))
     rply = {
       'success':True,
@@ -69,25 +68,25 @@ class HandlerThread(threading.Thread):
     return rply
 
   def handle_color(self, rqst):
-    utils.log_debug('%s : color[%s]=%s' %
+    print('%s : color[%s]=%s' %
       (self.__class__.__name__, rqst['priority'], rqst['color']))
     self.prioritiesList.set(int(rqst['priority']), rqst['color'])
     return {'success':True}
 
   def handle_effect(self, rqst):
-    utils.log_debug('%s : effect[%s]=%s' %
+    print('%s : effect[%s]=%s' %
       (self.__class__.__name__, rqst['priority'], rqst['effect']['name']))
     self.prioritiesList.set(int(rqst['priority']), rqst['effect']['name'])
     return {'success':True}
 
   def handle_clear(self, rqst):
-    utils.log_debug('%s : clear[%s]' %
+    print('%s : clear[%s]' %
       (self.__class__.__name__, rqst['priority']))
     self.prioritiesList.remove(int(rqst['priority']))
     return {'success':True}
 
   def handle_clearall(self, rqst):
-    utils.log_debug('%s : clearall' %
+    print('%s : clearall' %
       (self.__class__.__name__))
     self.prioritiesList.clear()
     return {'success':True}
@@ -102,20 +101,46 @@ class HyperionDecoder(threading.Thread):
     self.serverSocket.bind((listeningAddress, listeningPort))
     self.serverSocket.listen(5)
     self.prioritiesList = prioritiesList
-    utils.log_info('%s : Server socket initialized.' %
+    print('%s : Server socket initialized.' %
       (self.__class__.__name__))
 
   def run(self):
     """ Read commands, and handle it, saving informations in the shared
     priority queue """
-    utils.log_info('%s : Server socket listening.' %
+    print('%s : Server socket listening.' %
       (self.__class__.__name__))
-    while True:
+    shutdown = False
+    while not shutdown:
       try:
         connection, clientAddress = self.serverSocket.accept()
-        HandlerThread(self.prioritiesList, connection).start()
-      except Exception, e:
-        utils.log_error(e.strerror)
-    utils.log_error('%s : Server socket closed unexpectedly.' % 
-      (self.__class__.__name__))
+        try:
+          data = connection.recv(1024).decode()
+        except socket.timeout:
+          data = None
+        if data:
+          # Parse and handle command
+          rqst = json.loads(data)
+          command = rqst['command']
+          if command == 'quit':
+            shutdown = True
+            rply = {'success':True}
+          # elif command == 'serverinfo':
+          #   rply = self.handle_server_info(rqst)
+          # elif command == 'color':
+          #   rply = self.handle_color(rqst)
+          # elif command == 'effect':
+          #   rply = self.handle_effect(rqst)
+          # elif command == 'clear':
+          #   rply = self.handle_clear(rqst)
+          # elif command == 'clearall':
+          #   rply = self.handle_clearall(rqst)
+          else:
+            print('Command not recognized : %s' % (command))
+            rply = {'success':False}
+          connection.send(json.dumps(rply).encode())
+        else:
+          break
+      except Exception as e:
+        print(e.strerror)
+    self.serverSocket.close()
       
