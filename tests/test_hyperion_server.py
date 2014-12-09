@@ -47,3 +47,18 @@ class TestHyperionServer:
     reply_object = json.loads(reply)
     assert reply_object['success'] == True
     assert my_priority_list.get_first() == (128, [128, 128, 128])
+
+  def test_hyperion_server_effect(self, decoder, sending_socket):
+    message = {
+      'command':'effect',
+      'priority':128,
+      'effect':{
+        'name':"Rainbow.py"
+      }
+    }
+    sending_socket.send(json.dumps(message).encode())
+    reply = sending_socket.recv(1024).decode()
+    reply_object = json.loads(reply)
+    assert reply_object['success'] == True
+    assert my_priority_list.get_first() == (128, "Rainbow.py")
+  
