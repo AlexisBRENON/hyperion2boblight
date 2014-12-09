@@ -67,11 +67,6 @@ import socket
 #       rply['info']['priorities'].append({'priority':p})
 #     return rply
 
-#   def handle_color(self, rqst):
-#     print('%s : color[%s]=%s' %
-#       (self.__class__.__name__, rqst['priority'], rqst['color']))
-#     self.prioritiesList.set(int(rqst['priority']), rqst['color'])
-#     return {'success':True}
 
 #   def handle_effect(self, rqst):
 #     print('%s : effect[%s]=%s' %
@@ -126,8 +121,8 @@ class HyperionDecoder(threading.Thread):
             rply = {'success':True}
           elif command == 'serverinfo':
             rply = self.handle_server_info(rqst)
-          # elif command == 'color':
-          #   rply = self.handle_color(rqst)
+          elif command == 'color':
+            rply = self.handle_color(rqst)
           # elif command == 'effect':
           #   rply = self.handle_effect(rqst)
           # elif command == 'clear':
@@ -173,3 +168,9 @@ class HyperionDecoder(threading.Thread):
       rply['info']['priorities'].append({'priority':p})
     print(rply)
     return rply
+
+  def handle_color(self, rqst):
+    print('%s : color[%s]=%s' %
+      (self.__class__.__name__, rqst['priority'], rqst['color']))
+    self.prioritiesList.put(int(rqst['priority']), rqst['color'])
+    return {'success':True}

@@ -4,12 +4,14 @@ import json
 import hyperemote2boblight.lib.hyperion_decoder as hyperion_decoder
 import hyperemote2boblight.lib.priority_list as priority_list
 
+my_priority_list = priority_list.PriorityList()
+
 class TestHyperionServer:
 
   @pytest.fixture(scope="module")
   def decoder(self, request):
     decoder = hyperion_decoder.HyperionDecoder(
-      priority_list.PriorityList(),
+      getattr(request.module, "my_priority_list", None),
       "localhost", 19444)
     def end():
       sending_socket = socket.create_connection(("localhost", 19444))
@@ -33,3 +35,15 @@ class TestHyperionServer:
     reply = sending_socket.recv(1024).decode()
     reply_object = json.loads(reply)
     assert reply_object['success'] == True
+
+  def test_hyperion_server_color(self, decoder, sending_socket):
+    message = {
+      'command':'color',
+      'priority':128,
+      'color':[128, 128, 128]
+    }
+    sending_socket.send(json.dumps(message).encode())
+    reply = sending_socket.recv(1024).decode()
+    reply_object = json.loads(reply)
+    assert reply_object['success'] == True
+    assert my_priority_list.get_first() == (128, [128, 128, 128])
