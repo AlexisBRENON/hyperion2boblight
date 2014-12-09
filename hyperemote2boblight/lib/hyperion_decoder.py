@@ -69,17 +69,6 @@ import socket
 
 
 
-#   def handle_clear(self, rqst):
-#     print('%s : clear[%s]' %
-#       (self.__class__.__name__, rqst['priority']))
-#     self.prioritiesList.remove(int(rqst['priority']))
-#     return {'success':True}
-
-#   def handle_clearall(self, rqst):
-#     print('%s : clearall' %
-#       (self.__class__.__name__))
-#     self.prioritiesList.clear()
-#     return {'success':True}
 
 
 class HyperionDecoder(threading.Thread):
@@ -103,10 +92,7 @@ class HyperionDecoder(threading.Thread):
     while not shutdown:
       try:
         connection, clientAddress = self.serverSocket.accept()
-        try:
-          data = connection.recv(1024).decode()
-        except socket.timeout:
-          data = None
+        data = connection.recv(1024).decode()
         if data:
           # Parse and handle command
           rqst = json.loads(data)
@@ -120,10 +106,10 @@ class HyperionDecoder(threading.Thread):
             rply = self.handle_color(rqst)
           elif command == 'effect':
             rply = self.handle_effect(rqst)
-          # elif command == 'clear':
-          #   rply = self.handle_clear(rqst)
-          # elif command == 'clearall':
-          #   rply = self.handle_clearall(rqst)
+          elif command == 'clear':
+            rply = self.handle_clear(rqst)
+          elif command == 'clearall':
+            rply = self.handle_clearall(rqst)
           else:
             print('Command not recognized : %s' % (command))
             rply = {'success':False}
@@ -132,6 +118,8 @@ class HyperionDecoder(threading.Thread):
           break
       except Exception as e:
         print(e.strerror)
+      finally:
+        connection.close()
     self.serverSocket.close()
 
   def handle_server_info(self, rqst):
@@ -161,7 +149,6 @@ class HyperionDecoder(threading.Thread):
     for p in priorities:
       print(p)
       rply['info']['priorities'].append({'priority':p})
-    print(rply)
     return rply
 
   def handle_color(self, rqst):
@@ -174,4 +161,16 @@ class HyperionDecoder(threading.Thread):
     print('%s : effect[%s]=%s' %
       (self.__class__.__name__, rqst['priority'], rqst['effect']['name']))
     self.prioritiesList.put(int(rqst['priority']), rqst['effect']['name'])
+    return {'success':True}
+
+  def handle_clear(self, rqst):
+    print('%s : clear[%s]' %
+      (self.__class__.__name__, rqst['priority']))
+    self.prioritiesList.remove(int(rqst['priority']))
+    return {'success':True}
+
+  def handle_clearall(self, rqst):
+    print('%s : clearall' %
+      (self.__class__.__name__))
+    self.prioritiesList.clear()
     return {'success':True}

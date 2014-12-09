@@ -47,6 +47,7 @@ class TestHyperionServer:
     reply_object = json.loads(reply)
     assert reply_object['success'] == True
     assert my_priority_list.get_first() == (128, [128, 128, 128])
+    assert my_priority_list.size() == 1
 
   def test_hyperion_server_effect(self, decoder, sending_socket):
     message = {
@@ -61,4 +62,59 @@ class TestHyperionServer:
     reply_object = json.loads(reply)
     assert reply_object['success'] == True
     assert my_priority_list.get_first() == (128, "Rainbow.py")
+    assert my_priority_list.size() == 1
   
+  def test_hyperion_server_clear(self, decoder, sending_socket):
+    # Add a command to the server
+    message = {
+      'command':'color',
+      'priority':128,
+      'color':[128, 128, 128]
+    }
+    sending_socket.send(json.dumps(message).encode())
+    reply = sending_socket.recv(1024).decode()
+
+    message = {
+      'command':'clear',
+      'priority':128
+    }
+    sending_socket = self.sending_socket() # Create new socket, the previous one must be closed
+    sending_socket.send(json.dumps(message).encode())
+    reply = sending_socket.recv(1024).decode()
+    reply_object = json.loads(reply)
+    assert reply_object['success'] == True
+    assert my_priority_list.size() == 0
+  
+  def test_hyperion_server_clear_all(self, decoder):
+    # Add commands to the server
+    for i in [1, 128, 255]:
+      sending_socket = self.sending_socket()
+      message = {
+        'command':'color',
+        'priority':i,
+        'color':[i, i, i]
+      }
+      sending_socket.send(json.dumps(message).encode())
+      sending_socket.recv(1024)
+
+    sending_socket = self.sending_socket()
+    message = {
+      'command':'effect',
+      'priority':64,
+      'effect':{
+        'name': 'Rainbow.py'
+      }
+    }
+    sending_socket.send(json.dumps(message).encode())
+    sending_socket.recv(1024)
+    assert my_priority_list.size() == 4
+
+    sending_socket = self.sending_socket()
+    message = {
+      'command':'clearall',
+    }
+    sending_socket.send(json.dumps(message).encode())
+    reply = sending_socket.recv(1024).decode()
+    reply_object = json.loads(reply)
+    assert reply_object['success'] == True
+    assert my_priority_list.size() == 0

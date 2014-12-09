@@ -44,3 +44,8 @@ class PriorityList(object):
     result = self.get_first()
     self.event.clear()
     return result
+
+  def size(self):
+    with self.lock:
+      result = len(self.datas.keys())
+    return result

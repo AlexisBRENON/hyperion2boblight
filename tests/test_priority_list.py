@@ -21,10 +21,18 @@ class TestPriorityList:
     """ Fetching an item in an empty list must return the tuple (None, None) """
     assert empty_priority_list.get_first() == (None, None)
 
+  def test_empty_priority_list_size(self, empty_priority_list):
+    """ A size of an empty priority list is 0 """
+    assert empty_priority_list.size() == 0
+
   def test_empty_priority_list_put_one_value(self, empty_priority_list):
     """ Putting only one value in the priority, the get_first() function must return this value """
     empty_priority_list.put(1, 1)
     assert empty_priority_list.get_first() == (1, 1)
+
+  def test_priority_list_size(self, non_empty_priority_list):
+    """ The size of a priority list is the number of items in it """
+    assert non_empty_priority_list.size() == 3
 
   def test_priority_list_get_first(self, non_empty_priority_list):
     """ Fetching an item in a priority list must return the tuple with lowest priority value """
@@ -33,8 +41,10 @@ class TestPriorityList:
   def test_priority_list_remove_first(self, non_empty_priority_list):
     """ When first (lowest priority) item is removed, next call to get_first() must return the second element """
     first_item = non_empty_priority_list.get_first()
+    initial_size = non_empty_priority_list.size()
     non_empty_priority_list.remove(first_item[0])
     assert non_empty_priority_list.get_first() != first_item
+    assert non_empty_priority_list.size() == initial_size - 1
   
   def test_priority_list_put_first(self, non_empty_priority_list):
     """ A new value with lowest priority must become the first """
@@ -44,7 +54,7 @@ class TestPriorityList:
   def test_priority_list_clear(self, non_empty_priority_list):
     """ A call to clear must remove all the items in the priority list """
     non_empty_priority_list.clear()
-    assert non_empty_priority_list.get_first() == (None, None)
+    assert non_empty_priority_list.size() == 0
 
   def test_empty_priority_list_wait_item_add(self, empty_priority_list):
     """ In an empty priority list, a call to wait_new_item() should return as soon as new item is added """
