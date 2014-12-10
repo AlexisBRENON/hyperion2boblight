@@ -7,6 +7,7 @@ class PriorityList(object):
     self.lock = threading.RLock()
     self.datas = {}
     self.event = threading.Event()
+    self.current_obtained_item = (None, None)
 
   def get_priorities(self):
     with self.lock:
@@ -40,10 +41,14 @@ class PriorityList(object):
     return result
 
   def wait_new_item(self):
-    self.event.wait()
-    result = self.get_first()
-    self.event.clear()
-    return result
+    wait = True
+    while wait:
+      self.event.wait()
+      self.event.clear()
+      if (self.get_first() != self.current_obtained_item):
+        self.current_obtained_item = self.get_first()
+        wait = False
+    return self.current_obtained_item
 
   def size(self):
     with self.lock:

@@ -71,5 +71,49 @@ class TestPriorityList:
     assert returned_tuple == expected_tuple
     assert end - start < 0.001
     
+  def test_priority_list_wait_item_add_before(self, empty_priority_list):
+    """ In a priority list, a call to wait_new_item() should return if an item with lower priority is added """
+    empty_priority_list.put(128, 128)
+    expected_tuple = (1, 1)
+    returned_tuple = empty_priority_list.wait_new_item() # Fetch the current first item
+    def add_item_worker():
+      time.sleep(1.0)
+      empty_priority_list.put(expected_tuple[0], expected_tuple[1])
+    worker_thread = threading.Thread(target=add_item_worker)
+    worker_thread.start()
+
+    returned_tuple = empty_priority_list.wait_new_item() # Wait for a new item
+    assert returned_tuple == expected_tuple
+
+  def test_priority_list_wait_item_add_after(self, empty_priority_list):
+    """ In a priority list, a call to wait_new_item() should not return if an item with higher priority is added """
+    empty_priority_list.put(128, 128)
+    returned_tuple = empty_priority_list.wait_new_item() # Fetch the current first item
+    def add_item_worker():
+      time.sleep(0.5)
+      empty_priority_list.put(255, 255)
+      time.sleep(2)
+      empty_priority_list.put(1, 1)
+    worker_thread = threading.Thread(target=add_item_worker)
+    worker_thread.start()
+
+    start = time.time()
+    returned_tuple = empty_priority_list.wait_new_item()
+    end = time.time()
+    assert end - start > 2 # Checj that the wait item doesn't return before the second insert
+    assert returned_tuple == (1, 1)
+
+  def test_priority_list_wait_item_remove(self, non_empty_priority_list):
+    """ In a priority list, a call to wait_new_item() should return the new first item if the current first item is removed """
+    expected_tuple = (128, 128)
+    returned_tuple = non_empty_priority_list.wait_new_item() # Fetch the current first item
+    def add_item_worker():
+      time.sleep(1.0)
+      non_empty_priority_list.remove(non_empty_priority_list.get_first()[0])
+    worker_thread = threading.Thread(target=add_item_worker)
+    worker_thread.start()
+
+    returned_tuple = non_empty_priority_list.wait_new_item() # Wait for a new item
+    assert returned_tuple == expected_tuple
 
   
