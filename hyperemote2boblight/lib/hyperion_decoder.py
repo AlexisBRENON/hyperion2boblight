@@ -7,12 +7,22 @@ class HyperionDecoder(threading.Thread):
   def __init__(self, prioritiesList, listeningAddress, listeningPort):
     super(HyperionDecoder, self).__init__()
     self.serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    self.serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) 
-    self.serverSocket.bind((listeningAddress, listeningPort))
-    self.serverSocket.listen(5)
-    self.prioritiesList = prioritiesList
-    print('%s : Server socket initialized.' %
-      (self.__class__.__name__))
+    self.serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    bind_test = 5
+    binded = False
+    while not binded and bind_test > 0:
+      try:
+        self.serverSocket.bind((listeningAddress, listeningPort))
+        binded = True
+      except OSError:
+        bind_test = bind_test-1
+        print("HyperionDecoder : binding failed... %d tries remaining." % (bind_test))
+    if not binded:
+      exit(-1)
+    else:
+      self.serverSocket.listen(5)
+      self.prioritiesList = prioritiesList
+      print('HyperionDecoder : Server socket initialized.')
 
   def run(self):
     """ Read commands, and handle it, saving informations in the shared
@@ -48,6 +58,7 @@ class HyperionDecoder(threading.Thread):
         print(e.strerror)
       finally:
         connection.close() # Close the connection after handling the command (one connection for one command)
+    self.serverSocket.shutdown(socket.SHUT_RDWR)
     self.serverSocket.close()
 
   def handle_server_info(self, rqst):
