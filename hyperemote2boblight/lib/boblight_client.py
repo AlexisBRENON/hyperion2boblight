@@ -38,6 +38,7 @@ class BoblightClient(threading.Thread):
     while not shutdown:
       # wait for new command
       (priority, command) = self.prioritiesList.wait_new_item()
+      message = ""
       # Handle the exit command whatever the priority
       if type(command) == str and command == "Exit":
         shutdown = True
@@ -45,7 +46,6 @@ class BoblightClient(threading.Thread):
         message = message + self.set_lights(0, 0, 0)
       else:
         stopEvent.set()
-        message = ""
         print('BoblightClient : Executing %s:%s' % (priority, command))
         # Handle classic 'color' command
         if type(command) is list:
@@ -55,6 +55,9 @@ class BoblightClient(threading.Thread):
         elif type(command) == str and command == 'Rainbow':
           message = message + self.set_priority(priority)
           rainbow.RainbowThread(self.connection, self.lights, stopEvent).start()
+        elif (priority, command) == (None, None):
+          message = message + self.set_priority(0)
+          message = message + self.set_lights(0, 0, 0)
         else:
           print("BoblightClient : command not recognized : %s" % (command))
       # Actually send commands to the Boblight server
@@ -62,4 +65,6 @@ class BoblightClient(threading.Thread):
         self.connection.send(message.encode())
       # Loop to wait new command
     print('BoblightClient : Shutting Down')
+    self.connection.shutdown(socket.SHUT_RDWR)
     self.connection.close()
+    
