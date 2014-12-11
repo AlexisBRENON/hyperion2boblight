@@ -16,12 +16,14 @@ class RainbowThread(threading.Thread):
     # Start the write data loop
     hue = 0.0
     self.stopEvent.clear()
+    # Loop execute every sleepTime second until stopEvent is set
     while not self.stopEvent.wait(sleepTime):
       rgb = colorsys.hsv_to_rgb(hue, 1.0, 1.0)
+      message = ""
       for light in self.lights:
-        self.connection.write('set light %s rgb %f %f %f\n' % 
-          (light,
+        message = message + 'set light %s rgb %f %f %f\n' % (light,
           rgb[0],
           rgb[1],
-          rgb[2]))
+          rgb[2])
+      self.connection.send(message.encode())
       hue = (hue + hueIncrement) % 1.0

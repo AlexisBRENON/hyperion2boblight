@@ -72,3 +72,12 @@ class TestBoblightClient:
     my_priority_list.remove(1)
     received = connection.recv(1024).decode()
     assert received == "set priority 128\nset light screen rgb %f %f %f\n" % (64/255.0, 64/255.0, 64/255.0)
+
+  def test_boblight_client_effect(self, connection):
+    my_priority_list.clear()
+    my_priority_list.put(1, 'Rainbow')
+    # Receive the priority
+    message = connection.recv(1024).decode()
+    my_priority_list.clear()
+    assert message.endswith('set priority 1\n')
+    

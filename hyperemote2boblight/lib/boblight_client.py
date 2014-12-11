@@ -1,6 +1,7 @@
 import threading
 import sys
 import socket
+import hyperemote2boblight.lib.effects.rainbow as rainbow
 
 class BoblightClient(threading.Thread):
   """Thread which is connected to the boblight server"""
@@ -46,16 +47,19 @@ class BoblightClient(threading.Thread):
         stopEvent.set()
         message = ""
         print('BoblightClient : Executing %s:%s' % (priority, command))
-        # if command == 'Rainbow':
-        #   effects.rainbow.RainbowThread(self.connection, self.lights, stopEvent).start()
         # Handle classic 'color' command
         if type(command) is list:
           message = message + self.set_priority(priority)
           message = message + self.set_lights(command[0], command[1], command[2])
+        # Handle rainbow effect
+        elif type(command) == str and command == 'Rainbow':
+          message = message + self.set_priority(priority)
+          rainbow.RainbowThread(self.connection, self.lights, stopEvent).start()
         else:
           print("BoblightClient : command not recognized : %s" % (command))
       # Actually send commands to the Boblight server
-      self.connection.send(message.encode())
+      if message != "":
+        self.connection.send(message.encode())
       # Loop to wait new command
     print('BoblightClient : Shutting Down')
     self.connection.close()
