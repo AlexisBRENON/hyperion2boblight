@@ -64,12 +64,12 @@ class TestPriorityList:
       empty_priority_list.put(expected_tuple[0], expected_tuple[1])
 
     worker_thread = threading.Thread(target=add_item_worker)
-    start = time.clock()
+    start = time.time()
     worker_thread.start()
     returned_tuple = empty_priority_list.wait_new_item()
-    end = time.clock()
+    end = time.time()
     assert returned_tuple == expected_tuple
-    assert end - start < 0.001
+    assert end - start < 2
     
   def test_priority_list_wait_item_add_before(self, empty_priority_list):
     """ In a priority list, a call to wait_new_item() should return if an item with lower priority is added """
