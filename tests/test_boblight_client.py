@@ -37,6 +37,7 @@ class TestBoblightClient:
   @pytest.fixture
   def connection(self, request, server, client):
     connection, address = server.accept()
+    time.sleep(0.1) # Let time to the client to send welcomed messages
     return connection
 
 
@@ -85,7 +86,7 @@ class TestBoblightClient:
     my_priority_list.put(1, [1, 1, 1])
     connection.recv(1024) # Receive the second message
     my_priority_list.put(128, [64, 64, 64])
-    connection.settimeout(2)
+    connection.settimeout(1)
     # Changing any non first command do nothing
     with pytest.raises(socket.timeout):
       received = connection.recv(1024).decode()
@@ -95,7 +96,7 @@ class TestBoblightClient:
     my_priority_list.put(1, [1, 1, 1])
     connection.recv(1024) # Receive the first message
     my_priority_list.remove(1)
-    connection.settimeout(2)
+    connection.settimeout(1)
     received = connection.recv(1024).decode()
     assert received == "set priority 0\nset light screen rgb %f %f %f\n" % (0/255.0, 0/255.0, 0/255.0)
 

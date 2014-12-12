@@ -46,7 +46,7 @@ class BoblightClient(threading.Thread):
         message = message + self.set_lights(0, 0, 0)
       else:
         stopEvent.set()
-        print('BoblightClient : Executing %s:%s' % (priority, command))
+        print('%s : Executing %s:%s' % (self, priority, command))
         # Handle classic 'color' command
         if type(command) is list:
           message = message + self.set_priority(priority)
