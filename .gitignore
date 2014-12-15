@@ -1,2 +1,5 @@
 *.pyc
-*.sublime-*
+
+# Setuptool files and folders
+/dist/
+/*.egg-info
