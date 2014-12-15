@@ -47,7 +47,7 @@ class BoblightClient(threading.Thread):
             (priority, command) = self.priorities_list.wait_new_item()
             message = ""
             # Handle the exit command whatever the priority
-            if type(command) == str and command == "Exit":
+            if type(command) == str and command == "quit":
                 shutdown = True
                 message = message + self.set_priority(0)
                 message = message + self.set_lights(0, 0, 0)

@@ -32,7 +32,7 @@ class TestRainbowEffect:
             "localhost", 19444)
         def end():
             """ Terminating function """
-            MY_PRIORITY_LIST.put(0, "Exit")
+            MY_PRIORITY_LIST.put(0, "quit")
         request.addfinalizer(end)
         client.start()
         return client

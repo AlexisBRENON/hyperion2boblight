@@ -42,7 +42,7 @@ class HyperionDecoder(threading.Thread):
                     command = rqst['command']
                     if command == 'quit':
                         shutdown = True
-                        rply = {'success':True}
+                        rply = self.handle_quit()
                     elif command == 'serverinfo':
                         rply = self.handle_server_info()
                     elif command == 'color':
@@ -64,6 +64,12 @@ class HyperionDecoder(threading.Thread):
                 connection.close()
         self.server_socket.shutdown(socket.SHUT_RDWR)
         self.server_socket.close()
+
+    def handle_quit(self):
+        """ Propagate the quit command to the rest of the app and prepare the answer """
+        print('HyperionDecoder : quit')
+        self.priorities_list.put(0, 'quit')
+        return {'success':True}
 
     def handle_server_info(self):
         """ Return the right JSON string to send to client when asking server infos """
