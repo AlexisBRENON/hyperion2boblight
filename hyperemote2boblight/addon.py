@@ -4,7 +4,6 @@ in this protocol transcription.
 """
 #! /usr/bin/env python
 
-import time
 import hyperemote2boblight.lib.priority_list as priority_list
 import hyperemote2boblight.lib.hyperion_decoder as hyperion_decoder
 import hyperemote2boblight.lib.boblight_client as boblight_client
@@ -20,18 +19,18 @@ def get_settings():
 
 def main():
     """ Main function """
-    # Get the priorities
+    # Get the settings
     settings = get_settings()
 
     # Create the priority queue
     priorities_list = priority_list.PriorityList()
 
-    # Create the telnet connection to boblightd in an other thread
+    # Create the connection to boblightd in an other thread
     client_thread = boblight_client.BoblightClient(
         priorities_list,
         settings['boblightAddress'],
         settings['boblightPort'])
-    client_thread.daemon = True
+    #client_thread.daemon = True
     client_thread.start()
 
     # Start listening on server socket
@@ -39,11 +38,11 @@ def main():
         priorities_list,
         settings['listeningAddress'],
         settings['listeningPort'])
-    server_thread.daemon = True
+    #server_thread.daemon = True
     server_thread.start()
 
-    while server_thread.isAlive() and client_thread.isAlive():
-        time.sleep(1)
+    server_thread.join()
+    client_thread.join()
 
     print('Main : exiting')
 

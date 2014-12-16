@@ -1,3 +1,10 @@
+v2.0
+Run on python 3.4
+Remove XBMC compatibility
+Add unit testing
+Configure setuptool to be able to package it
+Allow a cleaner way to shutdown each thread
+
 v1.0
 Renamed effect Mood to Rainbow
 First working prototype
