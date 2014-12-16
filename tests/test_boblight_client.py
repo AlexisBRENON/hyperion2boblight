@@ -38,7 +38,7 @@ class TestBoblightClient:
         def end():
             """ Terminating function called at the end of test to shutdown the client """
             my_priority_list.put(0, "quit")
-            time.sleep(0.5)
+            client.join()
         request.addfinalizer(end)
         client.start()
         return client

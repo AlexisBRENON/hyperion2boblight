@@ -25,6 +25,7 @@ class TestHyperionServer:
             sending_socket.send(json.dumps(message).encode())
             sending_socket.shutdown(socket.SHUT_RDWR)
             sending_socket.close()
+            decoder.join()
         request.addfinalizer(end)
         decoder.start()
         return decoder
