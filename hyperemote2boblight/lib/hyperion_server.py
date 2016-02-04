@@ -8,8 +8,6 @@ import json
 import logging
 from socketserver import ThreadingTCPServer, StreamRequestHandler
 
-logging.basicConfig(level=logging.DEBUG)
-
 class HyperionServer(ThreadingTCPServer):
     """ Threaded TCP Server waiting for hyperion client connections.
 
