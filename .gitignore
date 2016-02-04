@@ -3,3 +3,14 @@
 # Setuptool files and folders
 /dist/
 /*.egg-info
+
+# Vim swap file
+*.*.swp
+
+# PyTest cache dir
+.cache/
+
+# Virtualenv directories
+/bin/
+/include/
+/lib/
