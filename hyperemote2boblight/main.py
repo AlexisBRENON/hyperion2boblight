@@ -4,9 +4,11 @@ in this protocol transcription.
 """
 #! /usr/bin/env python
 
-import hyperemote2boblight.lib.priority_list as priority_list
-import hyperemote2boblight.lib.hyperion_decoder as hyperion_decoder
-import hyperemote2boblight.lib.boblight_client as boblight_client
+import threading
+
+from hyperemote2boblight.lib.priority_list import PriorityList
+from hyperemote2boblight.lib.hyperion_server import HyperionServer
+from hyperemote2boblight.lib.boblight_client import BoblightClient
 
 def get_settings():
     """ Return the settings of the servers """
@@ -22,23 +24,22 @@ def main():
     # Get the settings
     settings = get_settings()
 
-    # Create the priority queue
-    priorities_list = priority_list.PriorityList()
+    priority_list = PriorityList()
 
     # Create the connection to boblightd in an other thread
-    client_thread = boblight_client.BoblightClient(
-        priorities_list,
+    client_thread = BoblightClient(
+        priority_list,
         settings['boblightAddress'],
         settings['boblightPort'])
     #client_thread.daemon = True
     client_thread.start()
 
     # Start listening on server socket
-    server_thread = hyperion_decoder.HyperionDecoder(
-        priorities_list,
-        settings['listeningAddress'],
-        settings['listeningPort'])
-    #server_thread.daemon = True
+    server = HyperionServer(
+        (settings['listeningAddress'], settings['listeningPort']),
+        priority_list
+    )
+    server_thread = threading.Thread(target=server.serve_forever)
     server_thread.start()
 
     server_thread.join()
