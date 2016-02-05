@@ -1,12 +1,13 @@
 """
 Rainbow light effect unit tests
 """
-import pytest
 import socket
-import hyperemote2boblight.lib.boblight_client as boblight_client
-import hyperemote2boblight.lib.priority_list as priority_list
 
-MY_PRIORITY_LIST = priority_list.PriorityList()
+import pytest
+
+from hyperion2boblight import BoblightClient, PriorityList
+
+MY_PRIORITY_LIST = PriorityList()
 
 class TestRainbowEffect:
     """ Raibow effect test class """
@@ -27,7 +28,7 @@ class TestRainbowEffect:
     @pytest.fixture
     def client(self, request):
         """ Create the boblight client which will connect to our server socket """
-        client = boblight_client.BoblightClient(
+        client = BoblightClient(
             getattr(request.module, "MY_PRIORITY_LIST", None),
             "localhost", 19444)
         def end():

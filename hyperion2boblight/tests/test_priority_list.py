@@ -1,10 +1,12 @@
 """
 Priority list unit test module
 """
-import pytest
 import time
 import threading
-import hyperemote2boblight.lib.priority_list as priority_list
+
+import pytest
+
+from hyperion2boblight import PriorityList
 
 class TestPriorityList:
     """ Define the PriorityList class features/behaviour """
@@ -12,7 +14,7 @@ class TestPriorityList:
     @pytest.fixture
     def empty_priority_list(self):
         """ Create an empty priority list """
-        return priority_list.PriorityList()
+        return PriorityList()
 
     @pytest.fixture
     def non_empty_priority_list(self, empty_priority_list):

@@ -1,14 +1,11 @@
-""" Main module.
-It parses configuration and launches every thread implied
-in this protocol transcription.
+#! /usr/bin/env python3
 """
-#! /usr/bin/env python
+Entry point to run a Hyperion2Boblight server
+"""
 
 import threading
 
-from hyperemote2boblight.lib.priority_list import PriorityList
-from hyperemote2boblight.lib.hyperion_server import HyperionServer
-from hyperemote2boblight.lib.boblight_client import BoblightClient
+from hyperion2boblight import PriorityList, BoblightClient, HyperionServer
 
 def get_settings():
     """ Return the settings of the servers """

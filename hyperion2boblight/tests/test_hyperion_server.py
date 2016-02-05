@@ -7,10 +7,9 @@ import threading
 
 import pytest
 
-import hyperemote2boblight.lib.hyperion_server as hyperion_server
-import hyperemote2boblight.lib.priority_list as priority_list
+from hyperion2boblight import HyperionServer, PriorityList
 
-MY_PRIORITY_LIST = priority_list.PriorityList()
+MY_PRIORITY_LIST = PriorityList()
 
 class TestHyperionServer:
     """ Hyperion server test class """
@@ -20,7 +19,7 @@ class TestHyperionServer:
         """ Create the decoder to test """
         my_priority_list = getattr(request.module, "MY_PRIORITY_LIST", None)
         my_priority_list.clear()
-        server = hyperion_server.HyperionServer(
+        server = HyperionServer(
             ("localhost", 19444),
             my_priority_list)
         server_thread = threading.Thread(target=server.serve_forever)
