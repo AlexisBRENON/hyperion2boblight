@@ -1,13 +1,14 @@
 """
 This is a module for Boblight client unit testing
 """
-import pytest
 import socket
 import time
-import hyperemote2boblight.lib.boblight_client as boblight_client
-import hyperemote2boblight.lib.priority_list as priority_list
 
-MY_PRIORITY_LIST = priority_list.PriorityList()
+import pytest
+
+from hyperion2boblight import BoblightClient, PriorityList
+
+MY_PRIORITY_LIST = PriorityList()
 
 class TestBoblightClient:
     """ This class contains all tests for Boblight client """
@@ -32,7 +33,7 @@ class TestBoblightClient:
         """ Create the Boblight client which will be tested """
         my_priority_list = getattr(request.module, "MY_PRIORITY_LIST", None)
         my_priority_list .clear()
-        client = boblight_client.BoblightClient(
+        client = BoblightClient(
             my_priority_list,
             "localhost", 19444)
         def end():

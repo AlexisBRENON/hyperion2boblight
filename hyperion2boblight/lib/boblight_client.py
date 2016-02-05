@@ -6,7 +6,7 @@ It can launch some effects located in hyperemote2boblight.lib.effects
 import threading
 import sys
 import socket
-import hyperemote2boblight.lib.effects.rainbow as rainbow
+import hyperion2boblight.lib.effects.rainbow as rainbow
 
 class BoblightClient(threading.Thread):
     """Thread which is connected to the boblight server"""
