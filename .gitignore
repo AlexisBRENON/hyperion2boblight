@@ -3,6 +3,7 @@
 # Setuptool files and folders
 /dist/
 /*.egg-info
+pip-selfcheck.json
 
 # Vim swap file
 *.*.swp
