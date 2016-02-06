@@ -3,29 +3,44 @@ It fetch the commands from a priority list, send the most prioritary one
 and keep the connection active.
 It can launch some effects located in hyperemote2boblight.lib.effects
 """
-import threading
 import sys
 import socket
-import hyperion2boblight.lib.effects.rainbow as rainbow
+import logging
+import threading
+from .effects import rainbow
 
-class BoblightClient(threading.Thread):
-    """Thread which is connected to the boblight server"""
-    def __init__(self, priorities_list, serverAddress, serverPort):
-        super(BoblightClient, self).__init__()
-        self.priorities_list = priorities_list
+from hyperion2boblight import Empty
+
+class BoblightClient:
+    """
+    Client which connect to a Boblight server and send it commands from a PriorityList
+    """
+    def __init__(self, server_address, priority_list):
+        self.server_address = server_address
+        self.priority_list = priority_list
+        self.effect_stop_event = threading.Event()
+        self.command = None
         try:
-            self.connection = socket.create_connection((serverAddress, serverPort))
-        except socket.error:
-            print('%s : Unable to create the Telnet connection to boblight server \'%s:%d\'' % (
-                self.__class__.__name__, serverAddress, serverPort))
-            sys.exit()
-        self.connection.send('hello\n'.encode())
-        self.lights = ['screen']
-        print('%s : Boblight connection initialized.' % (
-            self.__class__.__name__))
+            self.socket = socket.create_connection(self.server_address)
+        except socket.error as socket_error:
+            logging.error(
+                "Unable to create the connection to boblight server '%s:%d'",
+                self.server_address[0],
+                self.server_address[1])
+            raise socket_error
 
-    def set_lights(self, red, green, blue):
+        self.socket.sendall(bytes('hello\n', "utf8"))
+        # TODO: handle boblight server configurations values
+        self.lights = ['screen']
+        logging.info('Boblight connection initialized.')
+
+    def set_lights(self, red, green=None, blue=None):
         """ Return the string to turn all light to the asked colors """
+        if isinstance(red, (list, tuple)):
+            blue = red[2]
+            green = red[1]
+            red = red[0]
+
         message = ""
         for light in self.lights:
             message = message + 'set light %s rgb %f %f %f\n' % (
@@ -40,38 +55,62 @@ class BoblightClient(threading.Thread):
         return 'set priority %d\n' % (priority)
 
     def run(self):
-        stop_event = threading.Event()
+        """
+        This function will send command to the Boblight server indefinitely. It can be
+        used as a target for a threading.Thread object
+        """
         shutdown = False
-        while not shutdown:
+
+        try:
+            self.command = self.priority_list.get_first()
+            self.handle_command()
+        except Empty:
+            pass
+        while True:
             # wait for new command
-            (priority, command) = self.priorities_list.wait_new_item()
-            message = ""
-            # Handle the exit command whatever the priority
-            if type(command) == str and command == "quit":
-                shutdown = True
-                message = message + self.set_priority(0)
-                message = message + self.set_lights(0, 0, 0)
+            try:
+                self.command = self.priority_list.wait_new_item()
+                if self.command[1] == 'quit':
+                    self.effect_stop_event.set()
+                    break
+            except Empty:
+                self.command = None
+            self.handle_command()
+
+        logging.info('Shutting Down')
+        self.socket.shutdown(socket.SHUT_RDWR)
+        self.socket.close()
+
+    def handle_command(self):
+        message = ""
+        # No command given, turn off lights
+        if self.command is None:
+            message += self.set_priority(0)
+            message += self.set_lights(0, 0, 0)
+        else:
+            logging.debug(
+                'Executing %s:%s',
+                self.command[0],
+                self.command[1]
+            )
+            # Stop any running effect
+            self.effect_stop_event.set()
+            # Handle classic 'color' command
+            if isinstance(self.command[1], list):
+                message += self.set_priority(self.command[0])
+                message += self.set_lights(self.command[1])
+            # Handle rainbow effect
+            elif isinstance(self.command[1], str) and self.command[1] == 'Rainbow':
+                message += self.set_priority(self.command[0])
+                rainbow.RainbowThread(self.socket, self.lights, self.effect_stop_event).start()
             else:
-                stop_event.set()
-                print('%s : Executing %s:%s' % (self, priority, command))
-                # Handle classic 'color' command
-                if type(command) is list:
-                    message = message + self.set_priority(priority)
-                    message = message + self.set_lights(command[0], command[1], command[2])
-                # Handle rainbow effect
-                elif type(command) == str and command == 'Rainbow':
-                    message = message + self.set_priority(priority)
-                    rainbow.RainbowThread(self.connection, self.lights, stop_event).start()
-                elif (priority, command) == (None, None):
-                    message = message + self.set_priority(0)
-                    message = message + self.set_lights(0, 0, 0)
-                else:
-                    print("BoblightClient : command not recognized : %s" % (command))
-            # Actually send commands to the Boblight server
-            if message != "":
-                self.connection.send(message.encode())
-            # Loop to wait new command
-        print('BoblightClient : Shutting Down')
-        self.connection.shutdown(socket.SHUT_RDWR)
-        self.connection.close()
+                logging.warning(
+                    "Command not recognized : %s",
+                    self.command[0]
+                )
+        # Actually send commands to the Boblight server
+        if message != "":
+            self.socket.sendall(bytes(message, "utf8"))
+
+
 

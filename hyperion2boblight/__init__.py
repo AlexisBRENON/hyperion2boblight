@@ -9,13 +9,13 @@ server. See the documentation of the following modules:
 
 
 from .lib import effects
-from .lib.priority_list import PriorityList
+from .lib.priority_list import PriorityList, Empty
 from .lib.boblight_client import BoblightClient
 from .lib.hyperion_server import HyperionServer, HyperionRequestHandler
 
 __all__ = [
     'effects',
-    'PriorityList',
+    'PriorityList', 'Empty',
     'BoblightClient',
     'HyperionServer', 'HyperionRequestHandler'
 ]

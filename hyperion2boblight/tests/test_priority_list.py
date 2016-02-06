@@ -6,7 +6,7 @@ import threading
 
 import pytest
 
-from hyperion2boblight import PriorityList
+from hyperion2boblight import PriorityList, Empty
 
 class TestPriorityList:
     """ Define the PriorityList class features/behaviour """
@@ -26,7 +26,8 @@ class TestPriorityList:
 
     def test_empty_priority_list_get_first(self, empty_priority_list):
         """ Fetching an item in an empty list must return the tuple (None, None) """
-        assert empty_priority_list.get_first() == (None, None)
+        with pytest.raises(Empty):
+            empty_priority_list.get_first()
 
     def test_empty_priority_list_size(self, empty_priority_list):
         """ A size of an empty priority list is 0 """
@@ -71,8 +72,8 @@ class TestPriorityList:
         expected_tuple = (128, 128)
         def add_item_worker():
             """ Function to add an item to the list after a short pause """
-            time.sleep(1.0)
-            empty_priority_list.put(expected_tuple[0], expected_tuple[1])
+            time.sleep(1.5)
+            empty_priority_list.put(expected_tuple)
 
         worker_thread = threading.Thread(target=add_item_worker)
         start = time.time()
@@ -87,11 +88,10 @@ class TestPriorityList:
         item with lower priority is added """
         empty_priority_list.put(128, 128)
         expected_tuple = (1, 1)
-        returned_tuple = empty_priority_list.wait_new_item() # Fetch the current first item
         def add_item_worker():
             """ Function to add an item to the list after a short pause """
-            time.sleep(1.0)
-            empty_priority_list.put(expected_tuple[0], expected_tuple[1])
+            time.sleep(1.5)
+            empty_priority_list.put(expected_tuple)
         worker_thread = threading.Thread(target=add_item_worker)
         worker_thread.start()
 
@@ -102,7 +102,6 @@ class TestPriorityList:
         """ In a priority list, a call to wait_new_item() should not return if
         an item with higher priority is added """
         empty_priority_list.put(128, 128)
-        returned_tuple = empty_priority_list.wait_new_item() # Fetch the current first item
         def add_item_worker():
             """ Function to add an item to the list after a short pause """
             time.sleep(0.5)
@@ -115,14 +114,13 @@ class TestPriorityList:
         start = time.time()
         returned_tuple = empty_priority_list.wait_new_item()
         end = time.time()
-        assert end - start > 2 # Checj that the wait item doesn't return before the second insert
+        assert end - start > 2 # Check that the wait item doesn't return before the second insert
         assert returned_tuple == (1, 1)
 
     def test_priority_list_wait_item_remove(self, non_empty_priority_list):
         """ In a priority list, a call to wait_new_item() should return the new
         first item if the current first item is removed """
         expected_tuple = (128, 128)
-        returned_tuple = non_empty_priority_list.wait_new_item() # Fetch the current first item
         def add_item_worker():
             """ Function to add an item to the list after a short pause """
             time.sleep(1.0)
