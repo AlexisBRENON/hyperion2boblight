@@ -63,10 +63,9 @@ def main():
 
     # Build base components
     priority_list = PriorityList()
-    client_thread = BoblightClient(
-        priority_list,
-        options.boblight_address,
-        options.boblight_port
+    client = BoblightClient(
+        (options.boblight_address, options.boblight_port),
+        priority_list
     )
     server = HyperionServer(
         (options.listening_address, options.listening_port),
@@ -74,6 +73,7 @@ def main():
     )
 
     # Create threads
+    client_thread = threading.Thread(target=client.run)
     server_thread = threading.Thread(target=server.serve_forever)
 
     # Launch threads

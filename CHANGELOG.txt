@@ -1,3 +1,10 @@
+v1.0
+Python 3.5 targetted
+Refactor server with sockerserver framework
+Change Licence to MIT
+
+===== Rename to Hyperion2Boblight =====
+
 v2.0
 Run on python 3.4
 Remove XBMC compatibility

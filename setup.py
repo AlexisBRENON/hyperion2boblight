@@ -43,5 +43,8 @@ setup(
     zip_safe=False,
     tests_require=['pytest'],
     cmdclass={'test':PyTest},
-    )
+    entry_points={
+        'console_scripts': ['hyperion2boblight=hyperion2boblight.main:main']
+    }
+)
 
