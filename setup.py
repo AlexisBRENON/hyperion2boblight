@@ -35,9 +35,9 @@ setup(
         'License :: OSI Approved :: MIT License'
         ],
     keywords='hyperion boblight',
-    url='http://github.com/AlexisBRENON/hyperemote2boblight',
+    url='http://github.com/AlexisBRENON/hyperion2boblight',
     author='Alexis BRENON',
-    author_email='brenon.alexis+hyperemote2boblight@gmail.com',
+    author_email='brenon.alexis+hyperion2boblight@gmail.com',
     license='MIT',
     packages=['hyperion2boblight'],
     zip_safe=False,
