@@ -30,9 +30,27 @@ class BoblightClient:
             raise socket_error
 
         self.socket.sendall(bytes('hello\n', "utf8"))
-        # TODO: handle boblight server configurations values
-        self.lights = ['screen']
+        data = self.socket.recv(4096)
+        if data != bytes('hello\n', "utf8"):
+            logging.critical('Incorrect response from boblight')
+
+        self.lights = list()
+        self.get_lights()
         logging.info('Boblight connection initialized.')
+
+    def get_lights(self):
+        self.socket.sendall(bytes('get lights\n', "utf8"))
+        data = self.socket.recv(4096)
+        data = data.decode("utf-8")
+        lines = data.split('\n')
+        l = lines[0].split()
+        if l[0] != "lights":
+            log.warn("Unable to enumerate lights")
+            return
+        n = int(l[1])
+        for i in range(n):
+            self.lights.append(lines[i+1].split(' ')[1])
+        logging.debug("Found "+str(n)+" lights")
 
     def set_lights(self, red, green=None, blue=None):
         """ Return the string to turn all light to the asked colors """
