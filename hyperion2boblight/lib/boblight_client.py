@@ -3,7 +3,6 @@ It fetch the commands from a priority list, send the most prioritary one
 and keep the connection active.
 It can launch some effects located in hyperemote2boblight.lib.effects
 """
-import sys
 import socket
 import logging
 import threading
@@ -20,6 +19,7 @@ class BoblightClient:
         self.priority_list = priority_list
         self.effect_stop_event = threading.Event()
         self.command = None
+        self.lights = []
         try:
             self.socket = socket.create_connection(self.server_address)
         except socket.error as socket_error:
@@ -28,29 +28,29 @@ class BoblightClient:
                 self.server_address[0],
                 self.server_address[1])
             raise socket_error
+        logging.info('Boblight connection accepted.')
 
+    def say_hello(self):
+        """ Initiate communication with a hand shaking """
         self.socket.sendall(bytes('hello\n', "utf8"))
         data = self.socket.recv(4096)
         if data != bytes('hello\n', "utf8"):
-            logging.critical('Incorrect response from boblight')
-
-        self.lights = list()
-        self.get_lights()
-        logging.info('Boblight connection initialized.')
+            logging.critical("Incorrect response from boblight server: '%s'", str(data, 'utf-8'))
+        return data
 
     def get_lights(self):
+        """ Get lights connected to the Boblight server """
         self.socket.sendall(bytes('get lights\n', "utf8"))
-        data = self.socket.recv(4096)
-        data = data.decode("utf-8")
+        data = str(self.socket.recv(4096), "utf-8").strip()
         lines = data.split('\n')
-        l = lines[0].split()
-        if l[0] != "lights":
-            log.warn("Unable to enumerate lights")
-            return
-        n = int(l[1])
-        for i in range(n):
-            self.lights.append(lines[i+1].split(' ')[1])
-        logging.debug("Found "+str(n)+" lights")
+        if lines[0].split()[0] != "lights":
+            logging.error("Unable to enumerate lights")
+        else:
+            for line in lines[1:]:
+                self.lights.append(line.split(' ')[1])
+            assert int(lines[0].split()[1]) == len(self.lights)
+        logging.debug("Found %s lights: %s", len(self.lights), self.lights)
+        return data
 
     def set_lights(self, red, green=None, blue=None):
         """ Return the string to turn all light to the asked colors """
@@ -77,7 +77,8 @@ class BoblightClient:
         This function will send command to the Boblight server indefinitely. It can be
         used as a target for a threading.Thread object
         """
-        shutdown = False
+        self.say_hello()
+        self.get_lights()
 
         try:
             self.command = self.priority_list.get_first()
@@ -100,9 +101,13 @@ class BoblightClient:
         self.socket.close()
 
     def handle_command(self):
+        """ Main worker """
         message = ""
         # No command given, turn off lights
         if self.command is None:
+            logging.debug(
+                "Turning off the lights"
+            )
             message += self.set_priority(0)
             message += self.set_lights(0, 0, 0)
         else:

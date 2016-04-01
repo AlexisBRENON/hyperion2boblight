@@ -2,8 +2,10 @@
 Rainbow light effect unit tests
 """
 
-import socket
+import io
+import time
 import threading
+import subprocess
 
 import pytest
 
@@ -14,26 +16,36 @@ MY_PRIORITY_LIST = PriorityList()
 class TestRainbowEffect:
     """ Raibow effect test class """
 
-    @pytest.fixture(scope='module')
-    def server(self, request):
-        """ Create a socket which play the server's role to get message from client """
-        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        server_socket.bind(("localhost", 19444))
-        server_socket.listen(5)
-        def end():
-            """ Terminating function """
-            server_socket.close()
-        request.addfinalizer(end)
-        return server_socket
+    @pytest.yield_fixture(scope='module')
+    def boblightd_process(self):
+        boblight_server = subprocess.Popen(
+            ['/usr/local/bin/boblightd', '-c', 'include/boblight.conf'],
+            universal_newlines=True,
+            stderr=subprocess.PIPE
+        )
+        while True:
+            if 'setup succeeded' in boblight_server.stderr.readline():
+                break
+
+        yield boblight_server
+
+        boblight_server.terminate()
+
+    @pytest.yield_fixture(scope='module')
+    def boblightd(self, boblightd_process):
+        boblightd_commands = open('/tmp/boblight_test', 'r')
+
+        yield (boblightd_process, boblightd_commands)
+
+        boblightd_commands.close()
 
     @pytest.yield_fixture
-    def client(self, request):
-        """ Create the boblight client which will connect to our server socket """
+    def client(self, request, boblightd_process):
+        """ Create the Boblight client which will be tested """
         my_priority_list = getattr(request.module, "MY_PRIORITY_LIST", None)
-        my_priority_list .clear()
+        my_priority_list.clear()
         client = BoblightClient(
-            ("localhost", 19444),
+            ("localhost", 19333),
             my_priority_list
         )
 
@@ -45,30 +57,45 @@ class TestRainbowEffect:
         my_priority_list.put(0, "quit")
         client_thread.join()
 
-    @pytest.fixture
-    def connection(self, request, server, client):
-        """ Actually create server and client and connect them """
-        connection, _ = server.accept()
-        # Receive the hello message
-        connection.recv(1024)
-        return connection
-
-    def test_rainbow_effect(self, connection):
+    def test_rainbow_effect(self, boblightd, client):
         """ Test that the rainbow effect actually display each rainbow color """
         MY_PRIORITY_LIST.put(1, 'Rainbow')
-        # Receive the priority
-        connection.recv(1024)
-        first_color_message = connection.recv(1024).decode()
-        message = ""
+        while True:
+            boblightd_output = boblightd[0].stderr.readline()
+            if '127.0.0.1:{} priority set to 1'.format(client.socket.getsockname()[1]) in boblightd_output:
+                assert True
+                break
+            elif boblightd_output == '':
+                assert False
+        time.sleep(0.1)
+        boblightd[1].seek(0, io.SEEK_END)
+        while True:
+            boblight_output = boblightd[1].readline()
+            if boblight_output != '':
+                break
+        first_color_message = boblight_output
+        commands = []
         # Wait a full iteration of the effect
-        while message.find(first_color_message) < 0:
-            message = message + connection.recv(1024).decode()
+        while True:
+            color_message = boblightd[1].readline()
+            if color_message != '':
+                commands.append(color_message)
+                if color_message != first_color_message:
+                    break
+        while True:
+            color_message = boblightd[1].readline()
+            if color_message != '':
+                commands.append(color_message)
+                if color_message == first_color_message:
+                    break
         MY_PRIORITY_LIST.clear()
+        commands = set(commands)
         # The message must contains command to light every rainbow color
-        assert message.find("rgb %f %f %f" % (1., 0., 0.)) != -1 # Red
-        assert message.find("rgb %f %f %f" % (1., 1., 0.)) != -1 # Yellow
-        assert message.find("rgb %f %f %f" % (0., 1., 0.)) != -1 # Green
-        assert message.find("rgb %f %f %f" % (0., 1., 1.)) != -1 # Turquoise
-        assert message.find("rgb %f %f %f" % (0., 0., 1.)) != -1 # Blue
-        assert message.find("rgb %f %f %f" % (1., 0., 1.)) != -1 # Purple
+        command_format = '{0:01.6f} {0:01.6f} {1:01.6f} {1:01.6f} {2:01.6f} {2:01.6f} \n'
+        assert command_format.format(1., 0., 0.) in commands # Red
+        assert command_format.format(1., 1., 0.) in commands # Yellow
+        assert command_format.format(0., 1., 0.) in commands # Green
+        assert command_format.format(0., 1., 1.) in commands # Turquoise
+        assert command_format.format(0., 0., 1.) in commands # Blue
+        assert command_format.format(1., 0., 1.) in commands # Purple
 

@@ -2,8 +2,10 @@
 It will send color messages to pass through all rainbow colors :
 red, yellow, green, turquoise, blue, purple.
 """
-import threading
+
+import socket
 import colorsys
+import threading
 
 class RainbowThread(threading.Thread):
     """docstring for RainbowThread"""
@@ -11,6 +13,7 @@ class RainbowThread(threading.Thread):
         super(RainbowThread, self).__init__()
         self.stop_event = stop_event
         self.connection = connection
+        self.connection.settimeout(1.)
         self.lights = lights
 
     def run(self):
@@ -30,5 +33,8 @@ class RainbowThread(threading.Thread):
                     rgb[0],
                     rgb[1],
                     rgb[2])
-            self.connection.send(message.encode())
+            try:
+                self.connection.send(message.encode())
+            except socket.timeout:
+                self.stop_event.set()
             hue = (hue + hue_increment) % 1.0
