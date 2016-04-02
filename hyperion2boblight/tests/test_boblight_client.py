@@ -24,7 +24,8 @@ class TestBoblightClient:
     @pytest.yield_fixture(scope='module')
     def boblightd_process(self):
         boblight_server = subprocess.Popen(
-            ['/usr/local/bin/boblightd', '-c', 'include/boblight.conf'],
+            ['/usr/bin/boblightd'],
+            shell=True,
             universal_newlines=True,
             stderr=subprocess.PIPE
         )
@@ -53,6 +54,7 @@ class TestBoblightClient:
             ("localhost", 19333),
             my_priority_list
         )
+        client_addr = client.socket.getsockname()
 
         client_thread = threading.Thread(target=client.run)
         client_thread.start()
@@ -61,6 +63,9 @@ class TestBoblightClient:
 
         my_priority_list.put(0, "quit")
         client_thread.join()
+        while True:
+            if 'removing {}:{}'.format(*client_addr) in boblightd_process.stderr.readline():
+                break
 
     def test_boblight_client_create(self, boblightd):
         """ Check that client creation has no problem and client send the
@@ -71,11 +76,14 @@ class TestBoblightClient:
             MY_PRIORITY_LIST
         )
         boblightd_output = boblightd[0].stderr.readline()
-        assert '127.0.0.1:{} connected'.format(client.socket.getsockname()[1]) in boblightd_output
+        assert '{}:{} connected'.format(*client.socket.getsockname()) in boblightd_output
 
     def test_boblight_client_say_hello(self, boblightd):
         """ Check that client creation has no problem and client send the
         welcome message """
+        while True:
+            if 'removing' in boblightd[0].stderr.readline():
+                break
         boblightd_output = ""
         client = BoblightClient(
             ("localhost", 19333),
@@ -84,11 +92,14 @@ class TestBoblightClient:
         boblightd[0].stderr.readline()
         client.say_hello()
         boblightd_output = boblightd[0].stderr.readline()
-        assert '127.0.0.1:{} said hello'.format(client.socket.getsockname()[1]) in boblightd_output
+        assert '{}:{} said hello'.format(*client.socket.getsockname()) in boblightd_output
 
     def test_boblight_client_get_lights(self, boblightd):
         """ Check that client creation has no problem and client send the
         welcome message """
+        while True:
+            if 'removing' in boblightd[0].stderr.readline():
+                break
         client = BoblightClient(
             ("localhost", 19333),
             MY_PRIORITY_LIST
@@ -104,7 +115,7 @@ class TestBoblightClient:
         expected = ' '.join(['{:01.6f}'.format(128/255)]*6)
         while True:
             boblightd_output = boblightd[0].stderr.readline()
-            if '127.0.0.1:{} priority set to 128'.format(client.socket.getsockname()[1]) in boblightd_output:
+            if '{}:{} priority set to 128'.format(*client.socket.getsockname()) in boblightd_output:
                 assert True
                 break
             elif boblightd_output == '':
@@ -138,7 +149,7 @@ class TestBoblightClient:
         expected = ' '.join(['{:01.6f}'.format(1/255)]*6)
         while True:
             boblightd_output = boblightd[0].stderr.readline()
-            if '127.0.0.1:{} priority set to 1'.format(client.socket.getsockname()[1]) in boblightd_output:
+            if '{}:{} priority set to 1'.format(*client.socket.getsockname()) in boblightd_output:
                 assert True
                 break
             elif boblightd_output == '':
@@ -158,7 +169,7 @@ class TestBoblightClient:
         expected = ' '.join(['{:01.6f}'.format(11/255)]*6)
         while True:
             boblightd_output = boblightd[0].stderr.readline()
-            if '127.0.0.1:{} priority set to 1'.format(client.socket.getsockname()[1]) in boblightd_output:
+            if '{}:{} priority set to 1'.format(*client.socket.getsockname()) in boblightd_output:
                 assert True
                 break
             elif boblightd_output == '':
@@ -190,13 +201,13 @@ class TestBoblightClient:
         MY_PRIORITY_LIST.put(1, [1, 1, 1])
         while True:
             boblightd_output = boblightd[0].stderr.readline()
-            if '127.0.0.1:{} priority set to 1'.format(client.socket.getsockname()[1]) in boblightd_output:
+            if '{}:{} priority set to 1'.format(*client.socket.getsockname()) in boblightd_output:
                 break
         MY_PRIORITY_LIST.remove(1)
         expected = ' '.join(['{:01.6f}'.format(0/255)]*6)
         while True:
             boblightd_output = boblightd[0].stderr.readline()
-            if '127.0.0.1:{} priority set to 0'.format(client.socket.getsockname()[1]) in boblightd_output:
+            if '{}:{} priority set to 0'.format(*client.socket.getsockname()) in boblightd_output:
                 assert True
                 break
             elif boblightd_output == '':
@@ -214,7 +225,7 @@ class TestBoblightClient:
         MY_PRIORITY_LIST.put(1, 'Rainbow')
         while True:
             boblightd_output = boblightd[0].stderr.readline()
-            if '127.0.0.1:{} priority set to 1'.format(client.socket.getsockname()[1]) in boblightd_output:
+            if '{}:{} priority set to 1'.format(*client.socket.getsockname()) in boblightd_output:
                 assert True
                 break
             elif boblightd_output == '':

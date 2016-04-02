@@ -19,7 +19,7 @@ class TestRainbowEffect:
     @pytest.yield_fixture(scope='module')
     def boblightd_process(self):
         boblight_server = subprocess.Popen(
-            ['/usr/local/bin/boblightd', '-c', 'include/boblight.conf'],
+            ['/usr/bin/boblightd'],
             universal_newlines=True,
             stderr=subprocess.PIPE
         )
@@ -62,7 +62,7 @@ class TestRainbowEffect:
         MY_PRIORITY_LIST.put(1, 'Rainbow')
         while True:
             boblightd_output = boblightd[0].stderr.readline()
-            if '127.0.0.1:{} priority set to 1'.format(client.socket.getsockname()[1]) in boblightd_output:
+            if '{}:{} priority set to 1'.format(*client.socket.getsockname()) in boblightd_output:
                 assert True
                 break
             elif boblightd_output == '':
@@ -98,4 +98,11 @@ class TestRainbowEffect:
         assert command_format.format(0., 1., 1.) in commands # Turquoise
         assert command_format.format(0., 0., 1.) in commands # Blue
         assert command_format.format(1., 0., 1.) in commands # Purple
+        while True:
+            boblightd_output = boblightd[0].stderr.readline()
+            if '{}:{} priority set to 0'.format(*client.socket.getsockname()) in boblightd_output:
+                assert True
+                break
+            elif boblightd_output == '':
+                assert False
 

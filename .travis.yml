@@ -3,8 +3,16 @@ python:
   - "3.4"
   - "3.5"
 
+before_install:
+  - ./include/boblight/install_boblight.sh
+
 install:
   - python setup.py install
 
 script: 
-  - python setup.py test
+  - python setup.py test --pytest-args="-sxv --fulltrace"
+
+addons:
+  apt:
+    packages:
+      - libusb-1.0-0-dev
