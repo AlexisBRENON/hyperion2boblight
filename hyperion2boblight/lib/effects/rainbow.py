@@ -3,38 +3,22 @@ It will send color messages to pass through all rainbow colors :
 red, yellow, green, turquoise, blue, purple.
 """
 
-import socket
 import colorsys
-import threading
 
-class RainbowThread(threading.Thread):
+from .effect import Effect
+
+class RainbowEffect(Effect):
     """docstring for RainbowThread"""
-    def __init__(self, connection, lights, stop_event):
-        super(RainbowThread, self).__init__()
-        self.stop_event = stop_event
-        self.connection = connection
-        self.connection.settimeout(1.)
-        self.lights = lights
+    def __init__(self):
+        super(RainbowEffect, self).__init__()
+        self.hue = 0.0
+        self.hue_increment = 1./360
 
-    def run(self):
-        sleep_time = 0.1
-        hue_increment = sleep_time / 30
+    def get_color(self, light=None):
+        return tuple([round(x, 4) for x in colorsys.hsv_to_rgb(self.hue, 1.0, 1.0)])
 
-        # Start the write data loop
-        hue = 0.0
-        self.stop_event.clear()
-        # Loop execute every sleep_time second until stop_event is set
-        while not self.stop_event.wait(sleep_time):
-            rgb = colorsys.hsv_to_rgb(hue, 1.0, 1.0)
-            message = ""
-            for light in self.lights:
-                message = message + 'set light %s rgb %f %f %f\n' % (
-                    light,
-                    rgb[0],
-                    rgb[1],
-                    rgb[2])
-            try:
-                self.connection.send(message.encode())
-            except socket.timeout:
-                self.stop_event.set()
-            hue = (hue + hue_increment) % 1.0
+    def increment(self):
+        self.hue += self.hue_increment
+        if self.hue > 1.0:
+            self.hue -= 1.0
+

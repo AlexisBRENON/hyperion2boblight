@@ -21,7 +21,10 @@ logging.basicConfig(level=logging.DEBUG)
 class TestBoblightClient:
     """ This class contains all tests for Boblight client """
 
-    @pytest.yield_fixture(scope='module')
+    # ###########################################
+    # FIXTURES
+
+    @pytest.yield_fixture
     def boblightd_process(self):
         boblight_server = subprocess.Popen(
             ['/usr/bin/boblightd'],
@@ -36,17 +39,22 @@ class TestBoblightClient:
         yield boblight_server
 
         boblight_server.terminate()
+        time.sleep(1)
 
-    @pytest.yield_fixture(scope='module')
-    def boblightd(self, boblightd_process):
+    @pytest.yield_fixture
+    def boblightd_commands(self, boblightd_process):
         boblightd_commands = open('/tmp/boblight_test', 'r')
 
-        yield (boblightd_process, boblightd_commands)
+        yield boblightd_commands
 
         boblightd_commands.close()
 
     @pytest.yield_fixture
-    def client(self, request, boblightd_process):
+    def boblightd(self, boblightd_process, boblightd_commands):
+        yield (boblightd_process, boblightd_commands)
+
+    @pytest.yield_fixture
+    def tested_client(self, request, boblightd):
         """ Create the Boblight client which will be tested """
         my_priority_list = getattr(request.module, "MY_PRIORITY_LIST", None)
         my_priority_list.clear()
@@ -54,180 +62,195 @@ class TestBoblightClient:
             ("localhost", 19333),
             my_priority_list
         )
-        client_addr = client.socket.getsockname()
-
-        client_thread = threading.Thread(target=client.run)
-        client_thread.start()
 
         yield client
 
-        my_priority_list.put(0, "quit")
+    @pytest.yield_fixture
+    def running_client(self, tested_client):
+        client_thread = threading.Thread(target=tested_client.run)
+        client_thread.start()
+
+        yield tested_client
+
+        tested_client.priority_list.put(0, "quit")
         client_thread.join()
-        while True:
-            if 'removing {}:{}'.format(*client_addr) in boblightd_process.stderr.readline():
-                break
 
-    def test_boblight_client_create(self, boblightd):
-        """ Check that client creation has no problem and client send the
-        welcome message """
-        boblightd_output = ""
-        client = BoblightClient(
-            ("localhost", 19333),
-            MY_PRIORITY_LIST
-        )
-        boblightd_output = boblightd[0].stderr.readline()
-        assert '{}:{} connected'.format(*client.socket.getsockname()) in boblightd_output
+    # ###########################################
+    # TESTS
 
-    def test_boblight_client_say_hello(self, boblightd):
-        """ Check that client creation has no problem and client send the
-        welcome message """
-        while True:
-            if 'removing' in boblightd[0].stderr.readline():
-                break
-        boblightd_output = ""
-        client = BoblightClient(
-            ("localhost", 19333),
-            MY_PRIORITY_LIST
-        )
+    def test_boblight_client_create(self, boblightd, tested_client):
+        """ Check that client creation has no problem """
+        expected = '{}:{} connected'.format(*tested_client.socket.getsockname())
+        assert expected in boblightd[0].stderr.readline()
+
+    def test_boblight_client_say_hello(self, boblightd, tested_client):
+        """ Check that hello message is received by Boblight server """
+        expected = '{}:{} said hello'.format(*tested_client.socket.getsockname())
         boblightd[0].stderr.readline()
-        client.say_hello()
-        boblightd_output = boblightd[0].stderr.readline()
-        assert '{}:{} said hello'.format(*client.socket.getsockname()) in boblightd_output
+        tested_client.say_hello()
+        assert expected in boblightd[0].stderr.readline()
 
-    def test_boblight_client_get_lights(self, boblightd):
-        """ Check that client creation has no problem and client send the
-        welcome message """
-        while True:
-            if 'removing' in boblightd[0].stderr.readline():
-                break
-        client = BoblightClient(
-            ("localhost", 19333),
-            MY_PRIORITY_LIST
-        )
-        client.say_hello()
-        client.get_lights()
-        assert client.lights == ['right', 'left']
+    def test_boblight_client_get_lights(self, boblightd, tested_client):
+        """ Check that client handles light configuration """
+        tested_client.say_hello()
+        tested_client.get_lights()
+        assert tested_client.lights == ['right', 'left']
 
-    def test_boblight_client_set_color(self, boblightd, client):
+    def test_boblight_client_set_color(self, boblightd, running_client):
         """ Check that adding a color message to the priority list the client send the right
         commands to the server. """
-        MY_PRIORITY_LIST.put(128, [128, 128, 128])
-        expected = ' '.join(['{:01.6f}'.format(128/255)]*6)
+        # Read up to the 'said hello' message
         while True:
-            boblightd_output = boblightd[0].stderr.readline()
-            if '{}:{} priority set to 128'.format(*client.socket.getsockname()) in boblightd_output:
-                assert True
+            if boblightd[0].stderr.readline().endswith('said hello\n'):
                 break
-            elif boblightd_output == '':
-                assert False
+
+        expected_output = "{}:{} priority set to {}".format(
+            *running_client.socket.getsockname(),
+            128
+        )
+        expected_command = ' '.join(['{:01.6f}'.format(128/255)]*6)
+        MY_PRIORITY_LIST.put(128, [128, 128, 128])
         time.sleep(0.1)
         boblightd[1].seek(0, io.SEEK_END)
-        while True:
-            boblight_output = boblightd[1].readline()
-            if boblight_output != '':
-                break
-        assert boblight_output.strip() == expected
+        time.sleep(0.1)
+        assert expected_output in boblightd[0].stderr.readline()
+        assert expected_command in boblightd[1].readline()
 
-    def test_boblight_client_set_color_with_higher_priority(self, boblightd, client):
+    def test_boblight_client_set_color_with_higher_priority(self, boblightd, running_client):
         """ Check that the client doesn't react when a non prioritary item is added """
+        # Read up to the 'said hello' message
+        while True:
+            if boblightd[0].stderr.readline().endswith('said hello\n'):
+                break
+
+        # Adding a higher priority should not react
+        expected_output = "{}:{} priority set to {}".format(
+            *running_client.socket.getsockname(),
+            128
+        )
+        expected_command = ' '.join(['{:01.6f}'.format(128/255)]*6)
         MY_PRIORITY_LIST.put(128, [128, 128, 128])
         MY_PRIORITY_LIST.put(255, [255, 255, 255])
-        # Adding a higher priority should not react
-        expected = ' '.join(['{:01.6f}'.format(128/255)]*6)
         time.sleep(0.1)
         boblightd[1].seek(0, io.SEEK_END)
-        while True:
-            boblight_output = boblightd[1].readline()
-            if boblight_output != '':
-                break
-        assert boblight_output.strip() == expected
+        time.sleep(0.1)
+        assert expected_output in boblightd[0].stderr.readline()
+        assert expected_command in boblightd[1].readline()
 
-    def test_boblight_client_set_color_with_lower_priority(self, boblightd, client):
+    def test_boblight_client_set_color_with_lower_priority(self, boblightd, running_client):
         """ Check that client react when adding a new prioritary item """
-        MY_PRIORITY_LIST.put(128, [128, 128, 128])
-        MY_PRIORITY_LIST.put(1, [1, 1, 1])
-        expected = ' '.join(['{:01.6f}'.format(1/255)]*6)
+        # Read up to the 'said hello' message
         while True:
-            boblightd_output = boblightd[0].stderr.readline()
-            if '{}:{} priority set to 1'.format(*client.socket.getsockname()) in boblightd_output:
-                assert True
+            if boblightd[0].stderr.readline().endswith('said hello\n'):
                 break
-            elif boblightd_output == '':
-                assert False
+
+        expected_output = "{}:{} priority set to {}".format(
+            *running_client.socket.getsockname(),
+            '{}'
+        )
+        expected_command = ' '.join(['{:01.6f}'.format(1/255)]*6)
+        MY_PRIORITY_LIST.put(128, [128, 128, 128])
+        assert expected_output.format(128) in boblightd[0].stderr.readline()
+        MY_PRIORITY_LIST.put(1, [1, 1, 1])
         time.sleep(0.1)
         boblightd[1].seek(0, io.SEEK_END)
-        while True:
-            boblight_output = boblightd[1].readline()
-            if boblight_output != '':
-                break
-        assert boblight_output.strip() == expected
+        time.sleep(0.1)
+        assert expected_output.format(1) in boblightd[0].stderr.readline()
+        assert expected_command in boblightd[1].readline()
 
-    def test_boblight_client_change_current_command(self, boblightd, client):
+    def test_boblight_client_change_current_command(self, boblightd, running_client):
         """ Check that client react when changing the current item """
+        # Read up to the 'said hello' message
+        while True:
+            if boblightd[0].stderr.readline().endswith('said hello\n'):
+                break
+
+        expected_output = "priority set to {}".format(1)
+        expected_command = ' '.join(['{:01.6f}'.format(1/255)]*6)
         MY_PRIORITY_LIST.put(1, [1, 1, 1])
+        time.sleep(0.1)
+        boblightd[1].seek(0, io.SEEK_END)
+        time.sleep(0.1)
+        assert expected_output in boblightd[0].stderr.readline()
+        assert expected_command in boblightd[1].readline()
+
+        expected_output = "priority set to {}".format(1)
+        expected_command = ' '.join(['{:01.6f}'.format(11/255)]*6)
         MY_PRIORITY_LIST.put(1, [11, 11, 11])
-        expected = ' '.join(['{:01.6f}'.format(11/255)]*6)
-        while True:
-            boblightd_output = boblightd[0].stderr.readline()
-            if '{}:{} priority set to 1'.format(*client.socket.getsockname()) in boblightd_output:
-                assert True
-                break
-            elif boblightd_output == '':
-                assert False
         time.sleep(0.1)
         boblightd[1].seek(0, io.SEEK_END)
-        while True:
-            boblight_output = boblightd[1].readline()
-            if boblight_output != '':
-                break
-        assert boblight_output.strip() == expected
+        time.sleep(0.1)
+        assert expected_output in boblightd[0].stderr.readline()
+        assert expected_command in boblightd[1].readline()
 
-    def test_boblight_client_change_any_command(self, boblightd, client):
+    def test_boblight_client_change_any_command(self, boblightd, running_client):
         """ Check that client doesn't react when changing a non current item """
+        # Read up to the 'said hello' message
+        while True:
+            if boblightd[0].stderr.readline().endswith('said hello\n'):
+                break
+
+        expected_output = "priority set to {}".format(128)
+        expected_command = ' '.join(['{:01.6f}'.format(128/255)]*6)
         MY_PRIORITY_LIST.put(128, [128, 128, 128])
+        time.sleep(0.1)
+        boblightd[1].seek(0, io.SEEK_END)
+        time.sleep(0.1)
+        assert expected_output in boblightd[0].stderr.readline()
+        assert expected_command in boblightd[1].readline()
+
+        expected_output = "priority set to {}".format(1)
+        expected_command = ' '.join(['{:01.6f}'.format(1/255)]*6)
         MY_PRIORITY_LIST.put(1, [1, 1, 1])
+        time.sleep(0.1)
+        boblightd[1].seek(0, io.SEEK_END)
+        time.sleep(0.1)
+        assert expected_output in boblightd[0].stderr.readline()
+        assert expected_command in boblightd[1].readline()
+
+        # No changement in command
+        expected_command = ' '.join(['{:01.6f}'.format(1/255)]*6)
         MY_PRIORITY_LIST.put(128, [64, 64, 64])
-        expected = ' '.join(['{:01.6f}'.format(1/255)]*6)
         time.sleep(0.1)
         boblightd[1].seek(0, io.SEEK_END)
-        while True:
-            boblight_output = boblightd[1].readline()
-            if boblight_output != '':
-                break
-        assert boblight_output.strip() == expected
+        time.sleep(0.1)
+        assert expected_command in boblightd[1].readline()
 
-    def test_boblight_client_remove(self, boblightd, client):
+    def test_boblight_client_remove(self, boblightd, running_client):
         """ Check client fetch the second item when removing the first """
+        # Read up to the 'said hello' message
+        while True:
+            if boblightd[0].stderr.readline().endswith('said hello\n'):
+                break
+
+        expected_output = "priority set to {}".format(1)
+        expected_command = ' '.join(['{:01.6f}'.format(1/255)]*6)
         MY_PRIORITY_LIST.put(1, [1, 1, 1])
-        while True:
-            boblightd_output = boblightd[0].stderr.readline()
-            if '{}:{} priority set to 1'.format(*client.socket.getsockname()) in boblightd_output:
-                break
-        MY_PRIORITY_LIST.remove(1)
-        expected = ' '.join(['{:01.6f}'.format(0/255)]*6)
-        while True:
-            boblightd_output = boblightd[0].stderr.readline()
-            if '{}:{} priority set to 0'.format(*client.socket.getsockname()) in boblightd_output:
-                assert True
-                break
-            elif boblightd_output == '':
-                assert False
         time.sleep(0.1)
         boblightd[1].seek(0, io.SEEK_END)
-        while True:
-            boblight_output = boblightd[1].readline()
-            if boblight_output != '':
-                break
-        assert boblight_output.strip() == expected
+        time.sleep(0.1)
+        assert expected_output in boblightd[0].stderr.readline()
+        assert expected_command in boblightd[1].readline()
 
-    def test_boblight_client_rainbow_effect(self, boblightd, client):
+        expected_output = "priority set to {}".format(0)
+        expected_command = ' '.join(['{:01.6f}'.format(0/255)]*6)
+        MY_PRIORITY_LIST.remove(1)
+        time.sleep(0.1)
+        boblightd[1].seek(0, io.SEEK_END)
+        time.sleep(0.1)
+        assert expected_output in boblightd[0].stderr.readline()
+        assert expected_command in boblightd[1].readline()
+
+    def test_boblight_client_rainbow_effect(self, boblightd, running_client):
         """ Check that client handle the rainbow effect """
-        MY_PRIORITY_LIST.put(1, 'Rainbow')
         while True:
-            boblightd_output = boblightd[0].stderr.readline()
-            if '{}:{} priority set to 1'.format(*client.socket.getsockname()) in boblightd_output:
-                assert True
+            if boblightd[0].stderr.readline().endswith('said hello\n'):
                 break
-            elif boblightd_output == '':
-                assert False
+
+        expected_output = "priority set to {}".format(1)
+        MY_PRIORITY_LIST.put(1, 'Rainbow')
+        time.sleep(0.1)
+        boblightd[1].seek(0, io.SEEK_END)
+        time.sleep(0.1)
+        assert expected_output in boblightd[0].stderr.readline()
 
