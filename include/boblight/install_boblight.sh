@@ -2,15 +2,13 @@
 
 set -eux
 
+# Install boblight from repo
 svn checkout http://boblight.googlecode.com/svn/trunk/ boblight
 cd boblight && ./configure --prefix=/usr --without-portaudio && make && sudo make install
-cd .. 
-sudo cp ./include/boblight/boblight.conf /etc/boblight.conf
+cd -
 
+# Test boblight availability
 boblightd -f
-
 sleep 1
-
 killall boblightd
-
 

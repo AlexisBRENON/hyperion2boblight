@@ -27,7 +27,7 @@ class TestBoblightClient:
     @pytest.yield_fixture
     def boblightd_process(self):
         boblight_server = subprocess.Popen(
-            ['/usr/bin/boblightd'],
+            'boblightd -c ./include/boblight/boblight.conf',
             shell=True,
             universal_newlines=True,
             stderr=subprocess.PIPE
@@ -39,7 +39,7 @@ class TestBoblightClient:
         yield boblight_server
 
         boblight_server.terminate()
-        time.sleep(1)
+        time.sleep(2)
 
     @pytest.yield_fixture
     def boblightd_commands(self, boblightd_process):
