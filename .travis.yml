@@ -3,6 +3,9 @@ python:
   - "3.4"
   - "3.5"
 
+before_install:
+  - ./include/boblight/install_boblight.sh
+
 install:
   - python setup.py install
 
