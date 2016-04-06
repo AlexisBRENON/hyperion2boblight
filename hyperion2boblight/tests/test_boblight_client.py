@@ -102,7 +102,11 @@ class TestBoblightClient:
         """ Check that client handles light configuration """
         tested_client.say_hello()
         tested_client.get_lights()
-        assert tested_client.lights == ['right', 'left']
+        assert sorted([light.name for light in tested_client.lights.values()]) == sorted(['right', 'left'])
+        assert tested_client.lights['left'].left == 0
+        assert tested_client.lights['left'].right == 0.5
+        assert tested_client.lights['right'].left == 0.5
+        assert tested_client.lights['right'].right == 1
 
     def test_boblight_client_set_color(self, boblightd, running_client):
         """ Check that adding a color message to the priority list the client send the right

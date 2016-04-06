@@ -10,6 +10,77 @@ from .effects import rainbow
 
 from hyperion2boblight import Empty
 
+class BoblightLight:
+    """
+    A light as defined in the Boblight config file.
+
+    It can be used by the Effect objects to return expected color given
+    the scanning area of a light.
+
+    To instanciate a light object, you must pass to its constructor values
+    returned by the boblight server. Nevertheless, internally coordinates
+    are stored in a relative manner : left-top corner is (0, 0) and
+    right-bottom one is (1.0, 1.0).
+    """
+
+    def __init__(self, name, hscan, vscan):
+        """
+        Create a new light.
+
+        name is the name of the light. It's not very useful except for debug
+        informations.
+        hscan and vscan are tuples, representing the scanning area coordinates,
+        according to the boblight configuration (i.e. with values between 0
+        and 100).
+        """
+        self.name = name
+        self.left = float(hscan[0])/100
+        self.right = float(hscan[1])/100.
+        self.top = float(vscan[0])/100
+        self.bottom = float(vscan[1])/100.
+
+    @property
+    def width(self):
+        """
+        The width property is the width of the scanning area of the light.
+        """
+        try:
+            return self.width
+        except AttributeError:
+            self.width = self.right - self.left
+
+    @property
+    def height(self):
+        """
+        The height property is the height of the scanning area of the light.
+        """
+        try:
+            return self.height
+        except AttributeError:
+            self.height = self.bottom - self.right
+
+    def contains(self, coord):
+        """
+        Check that light reacts to the point with coordinates coord.
+        """
+        return (
+            coord[0] > self.left and coord[0] < self.right and
+            coord[1] > self.top and coord[1] < self.bottom
+        )
+
+    def __str__(self):
+        return "-<O {} ({:.2f}-{:.2f}, {:.2f}|{:.2f})".format(
+            self.name,
+            self.left, self.right,
+            self.top, self.bottom)
+
+    def __repr__(self):
+        return "BoblightLight({}, ({:d}, {:d}), ({:d}, {:d}))".format(
+            self.name,
+            int(self.left * 100), int(self.right * 100),
+            int(self.top * 100), int(self.bottom *100))
+
+
 class BoblightClient:
     """
     Client which connect to a Boblight server and send it commands from a PriorityList
@@ -20,7 +91,7 @@ class BoblightClient:
         self.effect_stop_event = threading.Event()
         self.effect_threads = []
         self.command = None
-        self.lights = []
+        self.lights = {}
         try:
             self.socket = socket.create_connection(self.server_address)
         except socket.error as socket_error:
@@ -48,7 +119,12 @@ class BoblightClient:
             logging.error("Unable to enumerate lights")
         else:
             for line in lines[1:]:
-                self.lights.append(line.split(' ')[1])
+                (_, name, _, vscan_0, vscan_1, hscan_0, hscan_1) = line.split(' ')
+                self.lights[name] = BoblightLight(
+                    name,
+                    (hscan_0, hscan_1),
+                    (vscan_0, vscan_1)
+                )
             assert int(lines[0].split()[1]) == len(self.lights)
         logging.debug("Found %s lights: %s", len(self.lights), self.lights)
         return data
@@ -61,9 +137,9 @@ class BoblightClient:
             red = red[0]
 
         message = ""
-        for light in self.lights:
+        for light in self.lights.values():
             message = message + 'set light %s rgb %f %f %f\n' % (
-                light,
+                light.name,
                 red/255.0,
                 green/255.0,
                 blue/255.0)
@@ -160,9 +236,9 @@ class BoblightClient:
             self.client.effect_stop_event.clear()
             while not self.client.effect_stop_event.wait(self.speed):
                 message = ""
-                for light in self.client.lights:
+                for light in self.client.lights.values():
                     color = self.effect.get_color(light)
-                    message += "set light {} rgb {} {} {}\n".format(light, *color)
+                    message += "set light {} rgb {} {} {}\n".format(light.name, *color)
                 self.client.send_message(message)
                 self.effect.increment()
 
