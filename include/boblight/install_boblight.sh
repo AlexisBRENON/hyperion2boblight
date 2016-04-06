@@ -8,7 +8,4 @@ cd boblight && ./configure --prefix=/usr --without-portaudio && make && sudo mak
 cd -
 
 # Test boblight availability
-boblightd -f
-sleep 1
-killall boblightd
-
+which boblightd || exit 1

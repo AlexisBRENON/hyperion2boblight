@@ -26,9 +26,12 @@ class TestBoblightClient:
 
     @pytest.yield_fixture
     def boblightd_process(self):
-        boblight_server = subprocess.Popen(
-            'boblightd -c ./include/boblight/boblight.conf',
+        boblight_path = subprocess.check_output(
+            'which boblightd',
             shell=True,
+            universal_newlines=True).strip()
+        boblight_server = subprocess.Popen(
+            [boblight_path, '-c', './include/boblight/boblight.conf'],
             universal_newlines=True,
             stderr=subprocess.PIPE
         )
@@ -39,11 +42,16 @@ class TestBoblightClient:
         yield boblight_server
 
         boblight_server.terminate()
-        time.sleep(2)
+        boblight_server.wait(10)
+        time.sleep(1)
 
     @pytest.yield_fixture
     def boblightd_commands(self, boblightd_process):
-        boblightd_commands = open('/tmp/boblight_test', 'r')
+        try:
+            boblightd_commands = open('/tmp/boblight_test', 'r')
+        except FileNotFoundError:
+            time.sleep(2)
+            boblightd_commands = open('/tmp/boblight_test', 'r')
 
         yield boblightd_commands
 
@@ -104,8 +112,8 @@ class TestBoblightClient:
             if boblightd[0].stderr.readline().endswith('said hello\n'):
                 break
 
-        expected_output = "{}:{} priority set to {}".format(
-            *running_client.socket.getsockname(),
+        expected_output = "{0[0]}:{0[1]} priority set to {1}".format(
+            running_client.socket.getsockname(),
             128
         )
         expected_command = ' '.join(['{:01.6f}'.format(128/255)]*6)
@@ -124,8 +132,8 @@ class TestBoblightClient:
                 break
 
         # Adding a higher priority should not react
-        expected_output = "{}:{} priority set to {}".format(
-            *running_client.socket.getsockname(),
+        expected_output = "{0[0]}:{0[1]} priority set to {1}".format(
+            running_client.socket.getsockname(),
             128
         )
         expected_command = ' '.join(['{:01.6f}'.format(128/255)]*6)
@@ -144,8 +152,8 @@ class TestBoblightClient:
             if boblightd[0].stderr.readline().endswith('said hello\n'):
                 break
 
-        expected_output = "{}:{} priority set to {}".format(
-            *running_client.socket.getsockname(),
+        expected_output = "{0[0]}:{0[1]} priority set to {1}".format(
+            running_client.socket.getsockname(),
             '{}'
         )
         expected_command = ' '.join(['{:01.6f}'.format(1/255)]*6)
