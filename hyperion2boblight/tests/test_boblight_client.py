@@ -42,8 +42,13 @@ class TestBoblightClient:
         yield boblight_server
 
         boblight_server.terminate()
-        boblight_server.wait(10)
-        time.sleep(1)
+        try:
+            boblight_server.wait(10)
+        except subprocess.TimeoutExpired:
+            boblight_server.kill()
+            boblight_server.wait(10)
+
+        time.sleep(2)
 
     @pytest.yield_fixture
     def boblightd_commands(self, boblightd_process):
