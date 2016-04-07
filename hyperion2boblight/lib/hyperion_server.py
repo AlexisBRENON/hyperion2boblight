@@ -1,5 +1,3 @@
-#! /usr/bin/env python3
-
 """
 Threaded TCP Server to handle Hyperion clients connections
 """
@@ -33,6 +31,7 @@ class HyperionRequestHandler(StreamRequestHandler):
     def setup(self):
         super(HyperionRequestHandler, self).setup()
         self.hyperion_priority_list = self.server.priority_list
+        self.logger = logging.getLogger("HyperionRequestHandler")
 
     def handle(self):
         # Read data until the connection is closed
@@ -49,7 +48,7 @@ class HyperionRequestHandler(StreamRequestHandler):
                     # Call the right command handler
                     rply = self.handlers[command](self)
                 except IndexError:
-                    logging.warning('Command not recognized : %s', command)
+                    self.logger.warning('Command not recognized : %s', command)
                     rply = self.handlers['error'](self)
                 self.wfile.write(
                     bytes(json.dumps(rply) + '\n', 'utf-8'))
@@ -80,7 +79,7 @@ class HyperionRequestHandler(StreamRequestHandler):
           * Improve server to handle effect discovery
           * Improve server to actually use transformation
         """
-        logging.debug('HyperionServer : serverinfo')
+        self.logger.debug('serverinfo')
         rply = {
             'success':True,
             'info':{
@@ -110,8 +109,8 @@ class HyperionRequestHandler(StreamRequestHandler):
         """
         Add a simple color to the priority list.
         """
-        logging.debug(
-            'HyperionDecoder : color[%s]=%s',
+        self.logger.debug(
+            'color[%s]=%s',
             self.rqst['priority'],
             self.rqst['color']
         )
@@ -124,9 +123,12 @@ class HyperionRequestHandler(StreamRequestHandler):
     def _effect(self):
         """
         Add an effect to the priority list.
+
+        TODO:
+          * handle effect options
         """
-        logging.debug(
-            'HyperionDecoder : effect[%s]=%s',
+        self.logger.debug(
+            'effect[%s]=%s',
             self.rqst['priority'],
             self.rqst['effect']['name']
         )
@@ -140,8 +142,8 @@ class HyperionRequestHandler(StreamRequestHandler):
         """
         Remove the command with the right priority from the priority list.
         """
-        logging.debug(
-            'HyperionDecoder : clear[%s]',
+        self.logger.debug(
+            'clear[%s]',
             self.rqst['priority']
         )
         self.hyperion_priority_list.remove(int(self.rqst['priority']))
@@ -151,7 +153,7 @@ class HyperionRequestHandler(StreamRequestHandler):
         """
         Remove all items in the priority list.
         """
-        logging.debug('HyperionDecoder : clearall')
+        self.logger.debug('clearall')
         self.hyperion_priority_list.clear()
         return {'success':True}
 
