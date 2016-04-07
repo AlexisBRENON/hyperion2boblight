@@ -1,13 +1,18 @@
 language: python
 python:
-  - "3.4"
-  - "3.5"
-
+- '3.4'
+- '3.5'
 before_install:
-  - ./include/boblight/install_boblight.sh
-
+- "./include/boblight/install_boblight.sh"
 install:
-  - python setup.py install
-
-script: 
-  - python setup.py test
+- python setup.py install
+script:
+- python setup.py test
+deploy:
+  provider: pypi
+  user: AlexisBRENON
+  password:
+    secure: cqe6kGlQXxBwnSns1bSXlIp6rLjzZdD7kEtXwB62HYLbFlckSJT/5WVDM3gQKH+GGBUBSW8YzBgz0eEe/cyj72on5c0QHQnyi+WYDEiOFYNmnmaa6ktglE2hNar9lpB8K2UOR0aLN1jYUrbqDD2l/pApJHU6JZt43EyiCPCdV+Q=
+  on:
+    branch: master
+    tags: true

@@ -25,7 +25,7 @@ class PyTest(TestCommand):
 
 setup(
     name='hyperion2boblight',
-    version='1.1.1',
+    version='2.0.0',
     description='Control a Boblight server with a Hyperion client',
     long_description="""This tiny app allow you to use some Hyperion client
     (as the Hyperion Remote smartphone app) to control your boblight server.""",

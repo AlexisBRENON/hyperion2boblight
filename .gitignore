@@ -4,6 +4,7 @@
 /dist/
 /*.egg-info
 pip-selfcheck.json
+/build/
 
 # Vim swap file
 *.*.swp
